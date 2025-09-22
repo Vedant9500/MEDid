@@ -117,7 +117,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       // Capture image
       const imageSrc = webcamRef.current.getScreenshot();
       if (!imageSrc) {
-        throw new Error('Failed to capture image from camera');
+        throw new (Error as any)('Failed to capture image from camera');
       }
 
       // Convert base64 to File
@@ -133,7 +133,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       // Check if quality is sufficient
       const averageQuality = quality.reduce((sum, q) => sum + q.value, 0) / quality.length;
       if (averageQuality < 70) {
-        throw new Error('Image quality too low. Please ensure good lighting and focus.');
+        throw new (Error as any)('Image quality too low. Please ensure good lighting and focus.');
       }
 
       // Step 2: Liveness Detection (40%)
@@ -142,7 +142,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       setLivenessResult(livenessCheck);
 
       if (!livenessCheck.isLive && !isEmergencyMode) {
-        throw new Error('Liveness check failed. Please use a live image.');
+        throw new (Error as any)('Liveness check failed. Please use a live image.');
       }
 
       // Step 3: Template Extraction (60%)
@@ -150,7 +150,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       const templateResult = await apiService.extractBiometricTemplate(file);
 
       if (!templateResult.success) {
-        throw new Error('Failed to extract biometric template');
+        throw new (Error as any)('Failed to extract biometric template');
       }
 
       // Step 4: Template Matching (80%)
@@ -186,7 +186,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
     } catch (error) {
       console.error('Biometric scan error:', error);
       enqueueSnackbar(
-        error instanceof Error ? error.message : 'Scan failed',
+        (error as any) instanceof Error ? (error as any).message : 'Scan failed',
         { variant: 'error' }
       );
     } finally {

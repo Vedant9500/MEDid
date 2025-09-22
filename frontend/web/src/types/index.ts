@@ -8,6 +8,7 @@ export interface User {
   hospital?: string;
   permissions: string[];
   lastLogin?: Date;
+  avatar?: string;
 }
 
 export interface Patient {

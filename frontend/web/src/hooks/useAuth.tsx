@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('auth_token', response.access_token);
       setUser(response.user);
     } catch (error) {
-      throw new Error(apiService.handleApiError(error));
+      throw new (Error as any)(apiService.handleApiError(error));
     }
   };
 
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(demoUser);
     } catch (error) {
-      throw new Error(apiService.handleApiError(error));
+      throw new (Error as any)(apiService.handleApiError(error));
     }
   };
 
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new (Error as any)('useAuth must be used within an AuthProvider');
   }
   return context;
 };

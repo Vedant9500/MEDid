@@ -22,7 +22,7 @@ import {
   Fab,
 } from '@mui/material';
 import {
-  Emergency,
+  MedicalServices,
   Security,
   Speed,
   AccessTime,
@@ -201,7 +201,7 @@ const EmergencyPage: React.FC = () => {
       >
         <Box display="flex" alignItems="center" justifyContent="between" mb={4}>
           <Box display="flex" alignItems="center">
-            <Emergency 
+            <MedicalServices 
               sx={{ 
                 fontSize: 40, 
                 mr: 2, 
@@ -472,7 +472,7 @@ const EmergencyPage: React.FC = () => {
           animation: 'pulse 2s infinite',
         }}
       >
-        <Emergency />
+        <MedicalServices />
       </Fab>
 
       {/* Quick Scan Dialog */}

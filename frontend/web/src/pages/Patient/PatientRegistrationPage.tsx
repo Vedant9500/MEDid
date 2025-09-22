@@ -140,7 +140,7 @@ const PatientRegistrationPage: React.FC = () => {
     try {
       const imageSrc = webcamRef.current.getScreenshot();
       if (!imageSrc) {
-        throw new Error('Failed to capture image');
+        throw new (Error as any)('Failed to capture image');
       }
 
       // Convert to File
@@ -163,7 +163,7 @@ const PatientRegistrationPage: React.FC = () => {
         enqueueSnackbar('Biometric template captured successfully!', { variant: 'success' });
         nextStep();
       } else {
-        throw new Error('Failed to extract biometric template');
+        throw new (Error as any)('Failed to extract biometric template');
       }
 
     } catch (error) {

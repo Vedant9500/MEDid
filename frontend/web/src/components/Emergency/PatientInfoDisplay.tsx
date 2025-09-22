@@ -38,7 +38,7 @@ import {
   AccessTime,
   Security,
   Add,
-  Emergency,
+  MedicalServices,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -377,7 +377,7 @@ const PatientInfoDisplay: React.FC<PatientInfoDisplayProps> = ({
       >
         <DialogTitle>
           <Box display="flex" alignItems="center">
-            <Emergency sx={{ mr: 1 }} />
+            <MedicalServices sx={{ mr: 1 }} />
             Log Emergency Access
           </Box>
         </DialogTitle>
