@@ -1,0 +1,1090 @@
+openapi: 3.0.3
+info:
+  title: MedID - Biometric Health Passport API
+  description: |
+    Secure API for biometric health passport system enabling emergency medical access through facial recognition.
+    
+    ## Security Features
+    - All endpoints require TLS 1.3
+    - Device authentication via mutual TLS
+    - Field-level encryption for PHI
+    - Comprehensive audit logging
+    - Break-glass emergency access
+    
+    ## Authentication
+    - **Device Authentication**: X.509 certificates for medical devices
+    - **User Authentication**: OAuth2 + TOTP for healthcare providers
+    - **API Authentication**: JWT tokens with role-based access
+    
+  version: 1.0.0
+  contact:
+    name: MedID Security Team
+    email: security@medid.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.medid.example.com/v1
+    description: Production server
+  - url: https://staging-api.medid.example.com/v1
+    description: Staging server
+  - url: https://localhost:8000/v1
+    description: Development server
+
+security:
+  - DeviceCertificate: []
+  - JWTAuth: []
+
+paths:
+  # ==========================================
+  # PATIENT REGISTRATION ENDPOINTS
+  # ==========================================
+  
+  /patients:
+    post:
+      summary: Register new patient
+      description: |
+        Register a new patient with biometric template and emergency summary.
+        Extracts facial features, performs liveness detection, and stores encrypted data.
+      tags:
+        - Patient Registration
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [patient:create]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientRegistrationRequest'
+            examples:
+              basic_registration:
+                summary: Basic patient registration
+                value:
+                  name: "John Doe"
+                  dob: "1990-01-15"
+                  gender: "M"
+                  blood_group: "A+"
+                  face_image_base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                  allergies: ["penicillin", "shellfish"]
+                  current_medications: ["metformin 500mg"]
+                  emergency_contacts: [
+                    {
+                      "name": "Jane Doe",
+                      "relationship": "spouse",
+                      "phone": "+91-9876543210"
+                    }
+                  ]
+                  consent_granted: true
+                  abha_id: "12-3456-7890-1234"
+      responses:
+        '201':
+          description: Patient registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientRegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Patient already exists (biometric match found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /patients/{patient_id}:
+    get:
+      summary: Get patient information
+      description: Retrieve patient data (requires appropriate authorization)
+      tags:
+        - Patient Management
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [patient:read]
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Patient UUID
+        - name: fields
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [basic_info, emergency_summary, medical_history, allergies]
+          description: Specific fields to retrieve
+      responses:
+        '200':
+          description: Patient information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientInfo'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update patient information
+      description: Update non-biometric patient data
+      tags:
+        - Patient Management
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [patient:update]
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientUpdateRequest'
+      responses:
+        '200':
+          description: Patient updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==========================================
+  # EMERGENCY ACCESS ENDPOINTS
+  # ==========================================
+  
+  /emergency/match:
+    post:
+      summary: Emergency biometric match and data access
+      description: |
+        Match facial biometric and retrieve emergency medical information.
+        Implements break-glass access with comprehensive audit logging.
+        
+        **Break-glass Conditions:**
+        - Valid device certificate
+        - Biometric match above threshold (0.85)
+        - Medical emergency justification
+        - All access logged for audit
+      tags:
+        - Emergency Access
+      security:
+        - DeviceCertificate: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyMatchRequest'
+            examples:
+              unconscious_patient:
+                summary: Unconscious patient in ER
+                value:
+                  face_image_base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                  device_id: "device-hospital-001"
+                  emergency_type: "unconscious"
+                  break_glass_reason: "Patient unconscious, immediate allergy/medication info needed for treatment"
+                  healthcare_provider_id: "dr-smith-001"
+                  location: "Emergency Room Bay 3"
+                  requested_fields: ["allergies", "blood_group", "current_medications", "critical_conditions"]
+      responses:
+        '200':
+          description: Patient matched and emergency data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyMatchResponse'
+        '202':
+          description: Match found but requires additional authorization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyAuthorizationRequired'
+        '404':
+          description: No biometric match found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      match_confidence:
+                        type: number
+                        description: Highest match confidence achieved
+                      suggestions:
+                        type: array
+                        items:
+                          type: string
+                        description: Suggestions for improving match quality
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /emergency/sessions/{session_id}:
+    get:
+      summary: Get emergency access session details
+      description: Retrieve details of an emergency access session
+      tags:
+        - Emergency Access
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [emergency:read]
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Emergency session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencySession'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: End emergency access session
+      description: Manually terminate an active emergency session
+      tags:
+        - Emergency Access
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [emergency:manage]
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Reason for ending session early
+                outcome:
+                  type: string
+                  enum: [successful, emergency_resolved, patient_transferred, error]
+              required: [reason, outcome]
+      responses:
+        '200':
+          description: Session ended successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==========================================
+  # BIOMETRIC MANAGEMENT ENDPOINTS
+  # ==========================================
+  
+  /biometrics/templates:
+    post:
+      summary: Extract and store biometric template
+      description: |
+        Extract facial features and store encrypted biometric template.
+        Used during patient registration or biometric updates.
+      tags:
+        - Biometric Management
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [biometric:create]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BiometricExtractionRequest'
+      responses:
+        '201':
+          description: Biometric template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiometricTemplate'
+        '400':
+          description: Poor quality biometric or liveness check failed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      quality_score:
+                        type: number
+                        description: Biometric quality score (0-1)
+                      liveness_score:
+                        type: number
+                        description: Liveness detection score (0-1)
+                      quality_issues:
+                        type: array
+                        items:
+                          type: string
+                        description: Specific quality issues detected
+
+  /biometrics/match:
+    post:
+      summary: Perform biometric matching
+      description: |
+        Match provided biometric against stored templates.
+        Used for authentication and patient identification.
+      tags:
+        - Biometric Management
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [biometric:match]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BiometricMatchRequest'
+      responses:
+        '200':
+          description: Biometric match results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiometricMatchResponse'
+
+  # ==========================================
+  # HEALTH RECORDS ENDPOINTS
+  # ==========================================
+  
+  /patients/{patient_id}/records:
+    get:
+      summary: Get patient health records
+      description: Retrieve encrypted health records for a patient
+      tags:
+        - Health Records
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [records:read]
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: record_type
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [lab_result, prescription, allergy, diagnosis, vital_signs]
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Health records retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthRecordsResponse'
+
+    post:
+      summary: Add new health record
+      description: Add new encrypted health record for a patient
+      tags:
+        - Health Records
+      security:
+        - DeviceCertificate: []
+        - JWTAuth: [records:write]
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthRecordRequest'
+      responses:
+        '201':
+          description: Health record added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthRecord'
+
+  # ==========================================
+  # AUDIT AND COMPLIANCE ENDPOINTS
+  # ==========================================
+  
+  /audit/logs:
+    get:
+      summary: Get audit logs
+      description: Retrieve system audit logs (admin access only)
+      tags:
+        - Audit & Compliance
+      security:
+        - JWTAuth: [audit:read]
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: action_category
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [authentication, data_access, emergency_access, system_admin]
+        - name: actor_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: patient_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Audit logs retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogsResponse'
+
+  /audit/emergency-access:
+    get:
+      summary: Get emergency access audit trail
+      description: Retrieve audit trail for emergency access events
+      tags:
+        - Audit & Compliance
+      security:
+        - JWTAuth: [audit:read]
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: patient_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: device_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: include_patient_notified
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Emergency access audit trail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyAccessAuditResponse'
+
+  # ==========================================
+  # DEVICE MANAGEMENT ENDPOINTS
+  # ==========================================
+  
+  /devices:
+    get:
+      summary: List registered devices
+      description: Get list of registered medical devices
+      tags:
+        - Device Management
+      security:
+        - JWTAuth: [device:read]
+      parameters:
+        - name: organization_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, suspended, revoked]
+        - name: device_type
+          in: query
+          schema:
+            type: string
+            enum: [mobile, tablet, desktop, scanner]
+      responses:
+        '200':
+          description: Device list retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceListResponse'
+
+    post:
+      summary: Register new device
+      description: Register a new medical device for MedID access
+      tags:
+        - Device Management
+      security:
+        - JWTAuth: [device:create]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistrationRequest'
+      responses:
+        '201':
+          description: Device registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+
+  /devices/{device_id}:
+    get:
+      summary: Get device details
+      description: Retrieve details of a specific device
+      tags:
+        - Device Management
+      security:
+        - JWTAuth: [device:read]
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Device details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+
+    patch:
+      summary: Update device status
+      description: Update device status or configuration
+      tags:
+        - Device Management
+      security:
+        - JWTAuth: [device:update]
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceUpdateRequest'
+      responses:
+        '200':
+          description: Device updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+
+  # ==========================================
+  # CONSENT MANAGEMENT ENDPOINTS
+  # ==========================================
+  
+  /patients/{patient_id}/consents:
+    get:
+      summary: Get patient consents
+      description: Retrieve consent records for a patient
+      tags:
+        - Consent Management
+      security:
+        - JWTAuth: [consent:read]
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: consent_type
+          in: query
+          schema:
+            type: string
+            enum: [data_storage, emergency_access, research, sharing]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, expired, revoked]
+      responses:
+        '200':
+          description: Patient consents retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsentListResponse'
+
+    post:
+      summary: Record new consent
+      description: Record a new patient consent
+      tags:
+        - Consent Management
+      security:
+        - JWTAuth: [consent:create]
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentRequest'
+      responses:
+        '201':
+          description: Consent recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consent'
+
+# ==========================================
+# COMPONENTS SECTION
+# ==========================================
+
+components:
+  securitySchemes:
+    DeviceCertificate:
+      type: http
+      scheme: mutual
+      description: Mutual TLS authentication using X.509 device certificates
+    
+    JWTAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token-based authentication with role-based scopes
+
+  schemas:
+    # ==========================================
+    # REQUEST SCHEMAS
+    # ==========================================
+    
+    PatientRegistrationRequest:
+      type: object
+      required:
+        - face_image_base64
+        - consent_granted
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: Patient full name
+        dob:
+          type: string
+          format: date
+          description: Date of birth
+        gender:
+          type: string
+          enum: [M, F, O, U]
+          description: Gender (M=Male, F=Female, O=Other, U=Unknown)
+        blood_group:
+          type: string
+          enum: [A+, A-, B+, B-, AB+, AB-, O+, O-]
+          description: ABO blood group
+        face_image_base64:
+          type: string
+          format: byte
+          description: Base64 encoded face image for biometric extraction
+        allergies:
+          type: array
+          items:
+            type: string
+          description: Known allergies
+        current_medications:
+          type: array
+          items:
+            type: string
+          description: Current medications
+        emergency_contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyContact'
+        medical_conditions:
+          type: array
+          items:
+            type: string
+          description: Known medical conditions
+        consent_granted:
+          type: boolean
+          description: Whether patient grants consent for data storage
+        abha_id:
+          type: string
+          pattern: '^[0-9]{2}-[0-9]{4}-[0-9]{4}-[0-9]{4}$'
+          description: ABHA health ID (optional)
+        
+    EmergencyMatchRequest:
+      type: object
+      required:
+        - face_image_base64
+        - device_id
+        - break_glass_reason
+        - healthcare_provider_id
+      properties:
+        face_image_base64:
+          type: string
+          format: byte
+          description: Base64 encoded face image for matching
+        device_id:
+          type: string
+          format: uuid
+          description: ID of the requesting device
+        emergency_type:
+          type: string
+          enum: [unconscious, cardiac_arrest, trauma, allergic_reaction, mass_casualty, other]
+          description: Type of medical emergency
+        break_glass_reason:
+          type: string
+          maxLength: 500
+          description: Detailed reason for emergency access
+        healthcare_provider_id:
+          type: string
+          format: uuid
+          description: ID of healthcare provider requesting access
+        location:
+          type: string
+          maxLength: 200
+          description: Physical location of emergency (e.g., "ER Bay 3")
+        requested_fields:
+          type: array
+          items:
+            type: string
+            enum: [allergies, blood_group, current_medications, emergency_contacts, critical_conditions, medical_history]
+          description: Specific data fields requested
+        match_threshold:
+          type: number
+          minimum: 0.5
+          maximum: 1.0
+          default: 0.85
+          description: Minimum confidence for biometric match
+
+    BiometricExtractionRequest:
+      type: object
+      required:
+        - face_image_base64
+      properties:
+        face_image_base64:
+          type: string
+          format: byte
+          description: Base64 encoded face image
+        require_liveness:
+          type: boolean
+          default: true
+          description: Whether to perform liveness detection
+        quality_threshold:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+          description: Minimum quality score required
+
+    # ==========================================
+    # RESPONSE SCHEMAS
+    # ==========================================
+    
+    PatientRegistrationResponse:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          format: uuid
+          description: Unique patient identifier
+        registration_status:
+          type: string
+          enum: [success, pending_verification]
+        biometric_quality_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Quality score of captured biometric
+        emergency_summary_created:
+          type: boolean
+          description: Whether emergency summary was generated
+        created_at:
+          type: string
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Any warnings during registration
+
+    EmergencyMatchResponse:
+      type: object
+      properties:
+        match_found:
+          type: boolean
+          description: Whether a biometric match was found
+        patient_id:
+          type: string
+          format: uuid
+          description: Matched patient ID
+        match_confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence score of the match
+        emergency_data:
+          $ref: '#/components/schemas/EmergencyData'
+        session_id:
+          type: string
+          format: uuid
+          description: Emergency access session ID
+        access_expires_at:
+          type: string
+          format: date-time
+          description: When emergency access expires
+        patient_notification_sent:
+          type: boolean
+          description: Whether patient was notified of access
+        audit_id:
+          type: string
+          format: uuid
+          description: Audit log entry ID
+
+    EmergencyData:
+      type: object
+      properties:
+        allergies:
+          type: array
+          items:
+            type: string
+          description: Known allergies
+        blood_group:
+          type: string
+          description: ABO blood group
+        current_medications:
+          type: array
+          items:
+            type: string
+          description: Current medications
+        emergency_contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyContact'
+        critical_conditions:
+          type: array
+          items:
+            type: string
+          description: Critical medical conditions
+        last_updated:
+          type: string
+          format: date-time
+          description: When emergency data was last updated
+
+    # ==========================================
+    # COMMON SCHEMAS
+    # ==========================================
+    
+    EmergencyContact:
+      type: object
+      required:
+        - name
+        - relationship
+        - phone
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        relationship:
+          type: string
+          enum: [spouse, parent, child, sibling, friend, other]
+        phone:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+          description: Phone number in E.164 format
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        request_id:
+          type: string
+          format: uuid
+          description: Unique request identifier for troubleshooting
+
+    # ==========================================
+    # Additional schemas would continue here...
+    # ==========================================
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    RateLimited:
+      description: Too many requests - rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying
+          schema:
+            type: integer
+
+# ==========================================
+# WEBHOOKS (for patient notifications)
+# ==========================================
+
+webhooks:
+  patient-notification:
+    post:
+      summary: Patient notification webhook
+      description: Webhook called when patient needs to be notified of emergency access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type:
+                  type: string
+                  enum: [emergency_access, consent_updated, data_breach]
+                patient_id:
+                  type: string
+                  format: uuid
+                timestamp:
+                  type: string
+                  format: date-time
+                notification_data:
+                  type: object
+                  properties:
+                    emergency_session_id:
+                      type: string
+                      format: uuid
+                    accessing_organization:
+                      type: string
+                    access_reason:
+                      type: string
+                    data_accessed:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '200':
+          description: Notification acknowledged
