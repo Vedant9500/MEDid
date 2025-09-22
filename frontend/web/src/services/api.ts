@@ -146,7 +146,6 @@ class ApiService {
   async requestEmergencyAccess(
     faceImageBase64: string,
     reason: string,
-    emergencyType: string,
     location: string,
     accessingDeviceId?: string,
     accessingUser?: string,

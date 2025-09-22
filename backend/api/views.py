@@ -15,6 +15,9 @@ from .serializers import (
     LoginSerializer, DemoTokenSerializer
 )
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['POST'])
@@ -470,8 +473,12 @@ def emergency_access(request):
     import base64
     from datetime import datetime, timedelta
     
+    # Debug logging
+    logger.info(f"Emergency access POST request data: {request.data}")
+    
     serializer = EmergencyMatchRequestSerializer(data=request.data)
     if not serializer.is_valid():
+        logger.error(f"Serializer validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     try:

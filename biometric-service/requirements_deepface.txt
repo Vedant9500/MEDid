@@ -1,0 +1,51 @@
+# MedID Biometric Service Requirements - DeepFace Integration
+
+# Core FastAPI and ASGI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Authentication and Security
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Database
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.23
+
+# PRODUCTION BIOMETRIC PROCESSING - DeepFace
+deepface==0.0.86
+opencv-python==4.8.1.78
+Pillow==10.1.0
+numpy==1.24.4
+tensorflow>=2.4.0  # For DeepFace neural networks
+tf-keras>=2.13.0   # Required for TensorFlow 2.16+
+
+# Alternative models (optional - auto-installed by DeepFace)
+# mtcnn>=0.1.0      # For face detection
+# retina-face>=0.0.13  # Advanced face detection
+
+# Encryption
+cryptography==41.0.8
+
+# Monitoring and Metrics
+prometheus-client==0.19.0
+
+# Data Validation
+pydantic==2.5.0
+
+# Image Processing Enhancements
+scikit-image==0.22.0
+
+# Caching (optional)
+redis==5.0.1
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
+
+# Utilities
+python-dotenv==1.0.0
+aiofiles==23.2.1
