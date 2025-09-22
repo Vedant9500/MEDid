@@ -1,12 +1,26 @@
-# Backend Requirements for MedID
+# MedID Backend Requirements - Windows Development Version
+# This file provides alternative solutions for Windows development
+
+# Core Django dependencies
 Django==4.2.7
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 django-extensions==3.2.3
 
-# Database - Use newer version of psycopg2-binary for better Windows compatibility
+# Database - Multiple options for Windows compatibility
+# Option 1: Latest psycopg2-binary (recommended)
 psycopg2-binary==2.9.9
 
+# Option 2: If above fails, use psycopg (newer, pure Python wheels)
+# psycopg[binary]==3.1.13
+
+# Option 3: Alternative PostgreSQL adapter
+# django-postgresql==0.1.0
+
+# For development, you can also use SQLite (no PostgreSQL needed)
+# Just comment out psycopg2-binary and use SQLite in settings
+
+# Other dependencies
 redis==5.0.1
 celery==5.3.4
 cryptography==41.0.7
