@@ -427,13 +427,45 @@ def biometric_scan(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 @permission_classes([IsAuthenticated])
 def emergency_access(request):
     """
     Emergency access endpoint with break-glass authorization
-    Used by medical personnel in emergency situations
+    POST: Used by medical personnel in emergency situations for biometric matching
+    GET: Retrieve emergency access logs
     """
+    if request.method == 'GET':
+        # Return emergency access logs
+        from .models import EmergencyAccess
+        
+        patient_id = request.GET.get('patient_id')
+        
+        # Filter by patient ID if provided
+        if patient_id:
+            accesses = EmergencyAccess.objects.filter(
+                patient_id=patient_id
+            ).order_by('-timestamp')[:10]
+        else:
+            accesses = EmergencyAccess.objects.all().order_by('-timestamp')[:20]
+        
+        access_logs = []
+        for access in accesses:
+            access_logs.append({
+                'id': str(access.id),
+                'patient_id': str(access.patient_id),
+                'patient_name': access.patient.name if access.patient else 'Unknown',
+                'accessed_by': access.accessing_user,
+                'timestamp': access.timestamp.isoformat(),
+                'action': 'Emergency Access',
+                'status': 'success' if access.access_granted else 'failed',
+                'location': access.location,
+                'emergency_reason': access.emergency_reason,
+            })
+        
+        return Response(access_logs)
+    
+    # POST request handling for emergency biometric matching
     import requests
     import base64
     from datetime import datetime, timedelta

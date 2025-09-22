@@ -102,10 +102,9 @@ class ApiService {
   }
 
   async matchBiometric(templateData: string, threshold: number = 0.6): Promise<BiometricMatchResult> {
-    const response = await this.api.post('/biometric/match', {
-      template_data: templateData,
-      threshold,
-      max_results: 1,
+    const response = await this.api.post('/biometric/scan', {
+      face_image_base64: templateData,
+      confidence_threshold: threshold,
     });
     return response.data;
   }
@@ -145,16 +144,23 @@ class ApiService {
 
   // Emergency Access
   async requestEmergencyAccess(
-    patientId: string,
+    faceImageBase64: string,
     reason: string,
     emergencyType: string,
-    location: string
+    location: string,
+    accessingDeviceId?: string,
+    accessingUser?: string,
+    organization?: string,
+    confidenceThreshold?: number
   ): Promise<any> {
     const response = await this.api.post('/emergency/access', {
-      patient_id: patientId,
-      access_reason: reason,
-      emergency_type: emergencyType,
+      face_image_base64: faceImageBase64,
+      emergency_reason: reason,
+      accessing_device_id: accessingDeviceId || 'EMERGENCY_DEVICE_001',
+      accessing_user: accessingUser || 'Emergency Medical Staff',
+      organization: organization || 'Emergency Department',
       location,
+      confidence_threshold: confidenceThreshold || 0.5,
     });
     return response.data;
   }

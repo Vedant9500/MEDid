@@ -61,10 +61,11 @@ import apiService from '../../services/api';
 // Validation schema
 const patientSchema = yup.object().shape({
   name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
-  dateOfBirth: yup.string().required('Date of birth is required'),
+  date_of_birth: yup.string().required('Date of birth is required'),
   gender: yup.string().required('Gender is required'),
-  bloodGroup: yup.string().required('Blood group is required'),
-  emergencyContact: yup.string().required('Emergency contact is required').min(10, 'Valid phone number required'),
+  blood_group: yup.string().required('Blood group is required'),
+  emergency_contact_phone: yup.string().required('Emergency contact is required').min(10, 'Valid phone number required'),
+  emergency_contact_name: yup.string().required('Emergency contact name is required'),
   consentGranted: yup.boolean().oneOf([true], 'Consent must be granted to proceed'),
 });
 
@@ -299,7 +300,7 @@ const PatientRegistrationPage: React.FC = () => {
 
             <Grid item xs={12} sm={6}>
               <Controller
-                name="dateOfBirth"
+                name="date_of_birth"
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -308,8 +309,8 @@ const PatientRegistrationPage: React.FC = () => {
                     label="Date of Birth"
                     type="date"
                     InputLabelProps={{ shrink: true }}
-                    error={!!errors.dateOfBirth}
-                    helperText={errors.dateOfBirth?.message}
+                    error={!!errors.date_of_birth}
+                    helperText={errors.date_of_birth?.message}
                   />
                 )}
               />
@@ -337,10 +338,10 @@ const PatientRegistrationPage: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Blood Group</InputLabel>
                 <Controller
-                  name="bloodGroup"
+                  name="blood_group"
                   control={control}
                   render={({ field }) => (
-                    <Select {...field} label="Blood Group" error={!!errors.bloodGroup}>
+                    <Select {...field} label="Blood Group" error={!!errors.blood_group}>
                       <MenuItem value="A+">A+</MenuItem>
                       <MenuItem value="A-">A-</MenuItem>
                       <MenuItem value="B+">B+</MenuItem>
@@ -357,16 +358,33 @@ const PatientRegistrationPage: React.FC = () => {
 
             <Grid item xs={12} sm={6}>
               <Controller
-                name="emergencyContact"
+                name="emergency_contact_name"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
                     fullWidth
-                    label="Emergency Contact"
+                    label="Emergency Contact Name"
+                    placeholder="John Doe"
+                    error={!!errors.emergency_contact_name}
+                    helperText={errors.emergency_contact_name?.message}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="emergency_contact_phone"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Emergency Contact Phone"
                     placeholder="+1-555-0123"
-                    error={!!errors.emergencyContact}
-                    helperText={errors.emergencyContact?.message}
+                    error={!!errors.emergency_contact_phone}
+                    helperText={errors.emergency_contact_phone?.message}
                   />
                 )}
               />
@@ -690,10 +708,10 @@ const PatientRegistrationPage: React.FC = () => {
                 Personal Information
               </Typography>
               <Typography variant="body2">Name: {registrationData.name}</Typography>
-              <Typography variant="body2">DOB: {registrationData.dateOfBirth}</Typography>
+              <Typography variant="body2">DOB: {registrationData.date_of_birth || registrationData.dateOfBirth}</Typography>
               <Typography variant="body2">Gender: {registrationData.gender}</Typography>
-              <Typography variant="body2">Blood Group: {registrationData.bloodGroup}</Typography>
-              <Typography variant="body2">Emergency Contact: {registrationData.emergencyContact}</Typography>
+              <Typography variant="body2">Blood Group: {registrationData.blood_group}</Typography>
+              <Typography variant="body2">Emergency Contact: {registrationData.emergency_contact_name} - {registrationData.emergency_contact_phone}</Typography>
             </Paper>
           </Grid>
 

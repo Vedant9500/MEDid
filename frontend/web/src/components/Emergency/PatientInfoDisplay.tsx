@@ -149,16 +149,16 @@ const PatientInfoDisplay: React.FC<PatientInfoDisplayProps> = ({
                 <Box display="flex" alignItems="center" gap={1} mt={1}>
                   <Chip
                     icon={<Person />}
-                    label={`${calculateAge(patient.dateOfBirth)} years old`}
+                    label={`${calculateAge(patient.date_of_birth || patient.dateOfBirth || '')} years old`}
                     size="small"
                     variant="outlined"
                   />
                   <Chip
                     icon={<Bloodtype />}
-                    label={patient.bloodGroup}
+                    label={patient.blood_group || 'Unknown'}
                     size="small"
                     sx={{
-                      bgcolor: getBloodGroupColor(patient.bloodGroup),
+                      bgcolor: getBloodGroupColor(patient.blood_group || ''),
                       color: 'white',
                       fontWeight: 'bold',
                     }}
@@ -334,7 +334,10 @@ const PatientInfoDisplay: React.FC<PatientInfoDisplayProps> = ({
                   Date of Birth
                 </Typography>
                 <Typography variant="body2">
-                  {format(new Date(patient.dateOfBirth), 'MMM dd, yyyy')}
+                  {patient.date_of_birth || patient.dateOfBirth 
+                    ? format(new Date(patient.date_of_birth || patient.dateOfBirth!), 'MMM dd, yyyy')
+                    : 'Unknown'
+                  }
                 </Typography>
               </Grid>
               <Grid item xs={6}>
@@ -350,7 +353,10 @@ const PatientInfoDisplay: React.FC<PatientInfoDisplayProps> = ({
                   Last Updated
                 </Typography>
                 <Typography variant="body2">
-                  {format(new Date(patient.updatedAt), 'MMM dd, yyyy HH:mm')}
+                  {patient.updated_at || patient.updatedAt 
+                    ? format(new Date(patient.updated_at || patient.updatedAt!), 'MMM dd, yyyy HH:mm')
+                    : 'Unknown'
+                  }
                 </Typography>
               </Grid>
               <Grid item xs={6}>

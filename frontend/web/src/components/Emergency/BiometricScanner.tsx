@@ -162,10 +162,14 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
 
         setScanProgress(80);
         const emergencyResult = await apiService.requestEmergencyAccess(
-          '', // patient_id not needed for biometric matching
+          emergencyData.face_image_base64,
           emergencyData.emergency_reason,
           'emergency',
-          emergencyData.location
+          emergencyData.location,
+          emergencyData.accessing_device_id,
+          emergencyData.accessing_user,
+          emergencyData.organization,
+          emergencyData.confidence_threshold
         );
 
         setScanProgress(100);
@@ -210,17 +214,13 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
         }
 
       } else {
-        // Standard biometric scan (non-emergency)
+        // Standard biometric scan (non-emergency) - use raw image
         setScanProgress(60);
-        const templateResult = await apiService.extractBiometricTemplate(file);
-
-        if (!templateResult.success) {
-          throw new (globalThis.Error)('Failed to extract biometric template');
-        }
-
+        
+        const imageBase64 = imageSrc.split(',')[1]; // Remove data:image/jpeg;base64, prefix
         setScanProgress(80);
         const matchResult = await apiService.matchBiometric(
-          templateResult.template_data,
+          imageBase64,
           0.6 // Standard threshold
         );
 
