@@ -29,7 +29,7 @@ const LoginPage: React.FC = () => {
   const { login } = useAuth();
   
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +44,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(formData.username, formData.password);
+      await login(formData.email, formData.password);
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -59,9 +59,9 @@ const LoginPage: React.FC = () => {
 
   const handleDemoLogin = (role: 'admin' | 'doctor' | 'staff') => {
     const demoCredentials = {
-      admin: { username: 'admin', password: 'admin123' },
-      doctor: { username: 'doctor', password: 'doctor123' },
-      staff: { username: 'staff', password: 'staff123' },
+      admin: { email: 'demo@medid.com', password: 'demo123' },
+      doctor: { email: 'demo@medid.com', password: 'demo123' },
+      staff: { email: 'demo@medid.com', password: 'demo123' },
     };
     
     const creds = demoCredentials[role];
@@ -103,12 +103,13 @@ const LoginPage: React.FC = () => {
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="Username"
-                value={formData.username}
-                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 margin="normal"
                 required
-                autoComplete="username"
+                autoComplete="email"
                 autoFocus
               />
               

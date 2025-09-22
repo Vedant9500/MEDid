@@ -49,6 +49,11 @@ class ApiService {
     return response.data;
   }
 
+  async getProfile(): Promise<User> {
+    const response = await this.api.get('/auth/profile');
+    return response.data;
+  }
+
   async logout(): Promise<void> {
     await this.api.post('/auth/logout');
     localStorage.removeItem('auth_token');

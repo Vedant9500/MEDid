@@ -26,8 +26,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check for existing auth token on app load
     const token = localStorage.getItem('auth_token');
     if (token) {
-      // In a real app, validate token with backend
-      // For demo, create a mock user
+      // For demo purposes, restore user state if token exists
+      // In production, this should validate the token with the backend
       setUser({
         id: 'demo-user-id',
         email: 'demo@medid.com',
