@@ -445,9 +445,9 @@ def emergency_access(request):
         if patient_id:
             accesses = EmergencyAccess.objects.filter(
                 patient_id=patient_id
-            ).order_by('-timestamp')[:10]
+            ).order_by('-started_at')[:10]
         else:
-            accesses = EmergencyAccess.objects.all().order_by('-timestamp')[:20]
+            accesses = EmergencyAccess.objects.all().order_by('-started_at')[:20]
         
         access_logs = []
         for access in accesses:
@@ -456,9 +456,9 @@ def emergency_access(request):
                 'patient_id': str(access.patient_id),
                 'patient_name': access.patient.name if access.patient else 'Unknown',
                 'accessed_by': access.accessing_user,
-                'timestamp': access.timestamp.isoformat(),
+                'timestamp': access.started_at.isoformat(),
                 'action': 'Emergency Access',
-                'status': 'success' if access.access_granted else 'failed',
+                'status': 'success' if access.status == 'granted' else 'failed',
                 'location': access.location,
                 'emergency_reason': access.emergency_reason,
             })

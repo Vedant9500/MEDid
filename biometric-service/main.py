@@ -25,6 +25,10 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -132,6 +136,12 @@ async def init_db():
     """Initialize database connection pool"""
     global db_pool
     try:
+        # Skip database connection for SQLite URLs (demo mode)
+        if config.DATABASE_URL.startswith('sqlite'):
+            logger.warning("SQLite URL detected - running in demo mode without database storage")
+            db_pool = None
+            return
+            
         db_pool = await asyncpg.create_pool(
             config.DATABASE_URL,
             min_size=5,
@@ -140,8 +150,8 @@ async def init_db():
         )
         logger.info("Database connection pool initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
+        logger.warning(f"Failed to initialize database: {e} - continuing without database storage")
+        db_pool = None
 
 async def close_db():
     """Close database connection pool"""
