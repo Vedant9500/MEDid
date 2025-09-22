@@ -6,9 +6,8 @@ import {
   BiometricMatchResult, 
   LivenessCheckResult, 
   SystemHealth,
-  EmergencyAccessRequest,
-  EmergencyAccessResponse,
-  AuditLogEntry
+  EmergencyAccess,
+  AuditLog
 } from '../types';
 
 // DeepFace-specific types
@@ -66,8 +65,8 @@ class APIService {
   private biometricURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
-    this.biometricURL = import.meta.env.VITE_BIOMETRIC_API_URL || 'http://localhost:8002';
+    this.baseURL = (process.env.REACT_APP_API_BASE_URL as string) || 'http://localhost:8001';
+    this.biometricURL = (process.env.REACT_APP_BIOMETRIC_API_URL as string) || 'http://localhost:8002';
     
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -217,7 +216,7 @@ class APIService {
     organization?: string,
     confidenceThreshold?: number,
     biometricModel?: string
-  ): Promise<EmergencyAccessResponse> {
+  ): Promise<EmergencyAccess> {
     // First, convert base64 image to File object for DeepFace processing
     const base64Data = faceImageBase64.split(',')[1];
     const byteCharacters = atob(base64Data);
@@ -275,12 +274,12 @@ class APIService {
     });
 
     return {
-      is_live: templateResult.anti_spoofing_passed,
+      isLive: templateResult.anti_spoofing_passed,
       confidence: templateResult.face_confidence,
-      risk_score: templateResult.anti_spoofing_passed ? 0.0 : 1.0,
-      checks_performed: ['face_detection', 'anti_spoofing', 'quality_assessment'],
-      processing_time_ms: templateResult.processing_time_ms,
-      request_id: templateResult.request_id
+      checksPassed: templateResult.anti_spoofing_passed ? ['face_detection', 'anti_spoofing', 'quality_assessment'] : ['face_detection'],
+      checksFailed: templateResult.anti_spoofing_passed ? [] : ['anti_spoofing'],
+      processingTimeMs: templateResult.processing_time_ms,
+      requestId: templateResult.request_id
     };
   }
 
@@ -314,7 +313,7 @@ class APIService {
       end_date?: string;
       limit?: number;
     }
-  ): Promise<AuditLogEntry[]> {
+  ): Promise<AuditLog[]> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -376,9 +375,18 @@ class APIService {
         integration_status
       };
     } catch (error) {
+      const errorHealth: SystemHealth = {
+        status: 'unhealthy',
+        service: 'unknown',
+        version: '0.0.0',
+        timestamp: new Date(),
+        dependencies: {},
+        uptimeSeconds: 0
+      };
+      
       return {
-        backend: { status: 'error' } as SystemHealth,
-        biometric: { status: 'error' },
+        backend: errorHealth,
+        biometric: errorHealth,
         integration_status: 'error'
       };
     }
