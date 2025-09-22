@@ -1,4 +1,4 @@
-# Enhanced MedID Biometric Service - Production Deployment Guide
+# MedID Biometric Service - Production Deployment Guide
 
 ## Overview
 This enhanced version addresses all critical security vulnerabilities identified in the code review and provides a production-ready biometric processing service for the MedID emergency medical identification system.
@@ -58,10 +58,10 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 ### Method 1: Docker Deployment (Recommended)
 
-1. **Build the enhanced service:**
+1. **Build the biometric service:**
 ```bash
 cd biometric-service
-docker build -f Dockerfile.enhanced -t medid-biometric-enhanced:latest .
+docker build -f Dockerfile -t medid-biometric:latest .
 ```
 
 2. **Create docker-compose.yml:**
@@ -69,7 +69,7 @@ docker build -f Dockerfile.enhanced -t medid-biometric-enhanced:latest .
 version: '3.8'
 services:
   biometric-service:
-    image: medid-biometric-enhanced:latest
+    image: medid-biometric:latest
     ports:
       - "8001:8001"
     environment:
@@ -124,7 +124,7 @@ psql -U postgres -d medid_production -f database_schema_enhanced.sql
 
 3. **Run the service:**
 ```bash
-uvicorn main_enhanced:app --host 0.0.0.0 --port 8001 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8001 --workers 4
 ```
 
 ## Configuration
@@ -258,7 +258,7 @@ artillery run load-test.yml
 ### Log Analysis
 ```bash
 # View service logs
-docker logs medid-biometric-enhanced
+docker logs medid-biometric
 
 # Search for errors
 grep "ERROR" logs/biometric-service.log
@@ -296,4 +296,4 @@ tail -f logs/biometric-service.log
 ✅ **Audit logging** - Complete operation tracking  
 ✅ **Production deployment** - Docker, environment configuration, and scaling
 
-This enhanced version transforms the original Grade B+ code into a production-ready Grade A service suitable for emergency medical identification systems.
+This transforms the original Grade B+ code into a production-ready Grade A service suitable for emergency medical identification systems.

@@ -1,4 +1,4 @@
--- Enhanced MedID Biometric Service Database Schema
+-- MedID Biometric Service Database Schema
 -- Production-ready database structure with security and performance optimizations
 
 -- Enable required extensions
