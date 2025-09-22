@@ -21,6 +21,11 @@ urlpatterns = [
     # Dashboard endpoints
     path('dashboard/stats', views.dashboard_stats, name='dashboard_stats'),
     path('emergency/stats', views.emergency_stats, name='emergency_stats'),
+    path('demo/stats', views.emergency_stats, name='demo_stats'),  # Alias for demo
     path('system/health', views.system_health, name='system_health'),
+    path('health', views.system_health, name='health'),  # Alias for health check
     path('system/recent-accesses', views.recent_accesses, name='recent_accesses'),
+    
+    # Logout endpoint
+    path('auth/logout', views.logout_user, name='logout'),
 ]

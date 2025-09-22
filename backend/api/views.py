@@ -76,6 +76,19 @@ def login(request):
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_user(request):
+    """Logout user and invalidate token"""
+    try:
+        # Delete the user's token
+        token = Token.objects.get(user=request.user)
+        token.delete()
+        return Response({'message': 'Successfully logged out'})
+    except Token.DoesNotExist:
+        return Response({'message': 'Already logged out'})
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def demo_token(request):

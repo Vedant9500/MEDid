@@ -18,7 +18,7 @@ class ApiService {
       (config) => {
         const token = localStorage.getItem('auth_token');
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          config.headers.Authorization = `Token ${token}`;
         }
         return config;
       },
