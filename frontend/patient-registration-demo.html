@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedID - Patient Registration Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-icon {
+            font-size: 4rem;
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stepper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 0 1rem;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .step-active .step-number {
+            background: #1976d2;
+            color: white;
+        }
+
+        .step-completed .step-number {
+            background: #4caf50;
+            color: white;
+        }
+
+        .step-inactive .step-number {
+            background: #e0e0e0;
+            color: #999;
+        }
+
+        .step-label {
+            font-weight: 500;
+        }
+
+        .step-active .step-label {
+            color: #1976d2;
+        }
+
+        .step-completed .step-label {
+            color: #4caf50;
+        }
+
+        .step-line {
+            width: 80px;
+            height: 2px;
+            background: #e0e0e0;
+        }
+
+        .step-line.completed {
+            background: #4caf50;
+        }
+
+        .registration-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-section h3 .material-icons {
+            margin-right: 0.5rem;
+            color: #1976d2;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-field {
+            margin-bottom: 1rem;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-field input,
+        .form-field select,
+        .form-field textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus,
+        .form-field textarea:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        .biometric-capture {
+            background: #f8f9fa;
+            border: 2px dashed #1976d2;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .capture-icon {
+            font-size: 5rem;
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .capture-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            margin: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .capture-button:hover {
+            background: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        .capture-button .material-icons {
+            margin-right: 0.5rem;
+        }
+
+        .capture-button.secondary {
+            background: #666;
+        }
+
+        .capture-button.secondary:hover {
+            background: #555;
+        }
+
+        .captured-samples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .sample-card {
+            background: white;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .sample-card .material-icons {
+            font-size: 3rem;
+            color: #4caf50;
+            margin-bottom: 0.5rem;
+        }
+
+        .sample-card h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .sample-card .quality {
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .consent-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .consent-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .consent-item input[type="checkbox"] {
+            margin-right: 1rem;
+            transform: scale(1.5);
+        }
+
+        .consent-text {
+            flex: 1;
+        }
+
+        .consent-text h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .consent-text p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .progress-indicator {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn .material-icons {
+            margin-right: 0.5rem;
+        }
+
+        .btn .material-icons.right {
+            margin-left: 0.5rem;
+            margin-right: 0;
+        }
+
+        .alert {
+            background: #1976d2;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert .material-icons {
+            margin-right: 1rem;
+        }
+
+        .demo-note {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid #1976d2;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .demo-note h3 {
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .stepper {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .step-line {
+                display: none;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .captured-samples {
+                grid-template-columns: 1fr;
+            }
+
+            .navigation-buttons {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Demo Note -->
+        <div class="demo-note">
+            <h3>🏥 MedID Patient Registration Portal</h3>
+            <p>Complete biometric health passport registration with multi-step wizard, real-time validation, and secure data handling.</p>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <span class="material-icons header-icon">person_add</span>
+            <div class="header-title">Patient Registration</div>
+            <div class="header-subtitle">Secure biometric health passport enrollment</div>
+
+            <!-- Progress Indicator -->
+            <div class="progress-indicator">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 25%"></div>
+                </div>
+                <div class="progress-text">Step 1 of 4 - Personal Information</div>
+            </div>
+
+            <!-- Stepper -->
+            <div class="stepper">
+                <div class="step step-active">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Personal Info</div>
+                </div>
+                <div class="step-line"></div>
+                <div class="step step-inactive">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Medical History</div>
+                </div>
+                <div class="step-line"></div>
+                <div class="step step-inactive">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Biometric Capture</div>
+                </div>
+                <div class="step-line"></div>
+                <div class="step step-inactive">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Review & Consent</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div class="alert">
+            <span class="material-icons">security</span>
+            All data is encrypted and stored securely in compliance with HIPAA regulations
+        </div>
+
+        <!-- Registration Form -->
+        <div class="registration-card">
+            <div class="form-section" id="step1">
+                <h3>
+                    <span class="material-icons">person</span>
+                    Personal Information
+                </h3>
+                
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" id="phone" name="phone" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="dateOfBirth">Date of Birth *</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="prefer-not-to-say">Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>
+                        <span class="material-icons">home</span>
+                        Address Information
+                    </h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="address">Street Address *</label>
+                            <input type="text" id="address" name="address" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="city">City *</label>
+                            <input type="text" id="city" name="city" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="state">State/Province *</label>
+                            <input type="text" id="state" name="state" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="zipCode">ZIP/Postal Code *</label>
+                            <input type="text" id="zipCode" name="zipCode" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="country">Country *</label>
+                            <select id="country" name="country" required>
+                                <option value="">Select Country</option>
+                                <option value="us">United States</option>
+                                <option value="ca">Canada</option>
+                                <option value="uk">United Kingdom</option>
+                                <option value="au">Australia</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>
+                        <span class="material-icons">contact_phone</span>
+                        Emergency Contact
+                    </h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="emergencyName">Full Name *</label>
+                            <input type="text" id="emergencyName" name="emergencyName" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="emergencyRelation">Relationship *</label>
+                            <select id="emergencyRelation" name="emergencyRelation" required>
+                                <option value="">Select Relationship</option>
+                                <option value="spouse">Spouse</option>
+                                <option value="parent">Parent</option>
+                                <option value="child">Child</option>
+                                <option value="sibling">Sibling</option>
+                                <option value="friend">Friend</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="emergencyPhone">Phone Number *</label>
+                            <input type="tel" id="emergencyPhone" name="emergencyPhone" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="emergencyEmail">Email Address</label>
+                            <input type="email" id="emergencyEmail" name="emergencyEmail">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="navigation-buttons">
+                <button class="btn btn-secondary" disabled>
+                    <span class="material-icons">arrow_back</span>
+                    Previous
+                </button>
+                <button class="btn btn-primary" onclick="nextStep()">
+                    Next
+                    <span class="material-icons right">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateStep();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStep();
+            }
+        }
+
+        function updateStep() {
+            // Update progress bar
+            const progressFill = document.querySelector('.progress-fill');
+            const progressText = document.querySelector('.progress-text');
+            const progressPercent = (currentStep / totalSteps) * 100;
+            
+            progressFill.style.width = progressPercent + '%';
+            
+            // Update step content
+            const stepTitles = [
+                'Personal Information',
+                'Medical History',
+                'Biometric Capture',
+                'Review & Consent'
+            ];
+            
+            progressText.textContent = `Step ${currentStep} of ${totalSteps} - ${stepTitles[currentStep - 1]}`;
+            
+            // Update stepper
+            const steps = document.querySelectorAll('.step');
+            const stepLines = document.querySelectorAll('.step-line');
+            
+            steps.forEach((step, index) => {
+                const stepNumber = index + 1;
+                step.className = 'step';
+                
+                if (stepNumber < currentStep) {
+                    step.classList.add('step-completed');
+                } else if (stepNumber === currentStep) {
+                    step.classList.add('step-active');
+                } else {
+                    step.classList.add('step-inactive');
+                }
+            });
+            
+            stepLines.forEach((line, index) => {
+                if (index + 1 < currentStep) {
+                    line.classList.add('completed');
+                } else {
+                    line.classList.remove('completed');
+                }
+            });
+            
+            // Update form content
+            updateFormContent();
+            
+            // Update navigation buttons
+            const prevBtn = document.querySelector('.btn-secondary');
+            const nextBtn = document.querySelector('.btn-primary');
+            
+            prevBtn.disabled = currentStep === 1;
+            
+            if (currentStep === totalSteps) {
+                nextBtn.innerHTML = '<span class="material-icons">check_circle</span> Complete Registration';
+                nextBtn.onclick = completeRegistration;
+            } else {
+                nextBtn.innerHTML = 'Next <span class="material-icons right">arrow_forward</span>';
+                nextBtn.onclick = nextStep;
+            }
+            
+            prevBtn.onclick = prevStep;
+        }
+
+        function updateFormContent() {
+            const formSection = document.getElementById('step1');
+            
+            if (currentStep === 2) {
+                formSection.innerHTML = `
+                    <h3>
+                        <span class="material-icons">medical_information</span>
+                        Medical History
+                    </h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="bloodType">Blood Type</label>
+                            <select id="bloodType" name="bloodType">
+                                <option value="">Select Blood Type</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="height">Height (cm)</label>
+                            <input type="number" id="height" name="height" placeholder="170">
+                        </div>
+                        <div class="form-field">
+                            <label for="weight">Weight (kg)</label>
+                            <input type="number" id="weight" name="weight" placeholder="70">
+                        </div>
+                        <div class="form-field">
+                            <label for="organDonor">Organ Donor</label>
+                            <select id="organDonor" name="organDonor">
+                                <option value="">Not specified</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="allergies">Known Allergies</label>
+                        <textarea id="allergies" name="allergies" rows="3" placeholder="List any known allergies (medications, foods, environmental)"></textarea>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="medications">Current Medications</label>
+                        <textarea id="medications" name="medications" rows="3" placeholder="List current medications and dosages"></textarea>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="conditions">Medical Conditions</label>
+                        <textarea id="conditions" name="conditions" rows="3" placeholder="List any chronic conditions or significant medical history"></textarea>
+                    </div>
+                `;
+            } else if (currentStep === 3) {
+                formSection.innerHTML = `
+                    <h3>
+                        <span class="material-icons">biotech</span>
+                        Biometric Data Capture
+                    </h3>
+                    
+                    <div class="biometric-capture">
+                        <span class="material-icons capture-icon">camera_alt</span>
+                        <h3>Facial Recognition Capture</h3>
+                        <p>Position your face in the center of the camera frame</p>
+                        <button class="capture-button" onclick="captureFace()">
+                            <span class="material-icons">camera_alt</span>
+                            Capture Face
+                        </button>
+                        <button class="capture-button secondary" onclick="testCamera()">
+                            <span class="material-icons">videocam</span>
+                            Test Camera
+                        </button>
+                    </div>
+                    
+                    <div class="biometric-capture">
+                        <span class="material-icons capture-icon">fingerprint</span>
+                        <h3>Fingerprint Capture</h3>
+                        <p>Place your index finger on the scanner</p>
+                        <button class="capture-button" onclick="captureFingerprint()">
+                            <span class="material-icons">fingerprint</span>
+                            Capture Fingerprint
+                        </button>
+                    </div>
+                    
+                    <div class="captured-samples" id="capturedSamples" style="display: none;">
+                        <div class="sample-card">
+                            <span class="material-icons">face</span>
+                            <h4>Facial Image</h4>
+                            <p class="quality">Quality: 98%</p>
+                        </div>
+                        <div class="sample-card">
+                            <span class="material-icons">fingerprint</span>
+                            <h4>Fingerprint</h4>
+                            <p class="quality">Quality: 95%</p>
+                        </div>
+                    </div>
+                `;
+            } else if (currentStep === 4) {
+                formSection.innerHTML = `
+                    <h3>
+                        <span class="material-icons">assignment_turned_in</span>
+                        Review & Consent
+                    </h3>
+                    
+                    <div class="consent-section">
+                        <h3 style="margin-bottom: 1.5rem;">Privacy and Consent Agreements</h3>
+                        
+                        <div class="consent-item">
+                            <input type="checkbox" id="hipaa" name="hipaa" required>
+                            <div class="consent-text">
+                                <h4>HIPAA Privacy Authorization</h4>
+                                <p>I authorize the use and disclosure of my protected health information for treatment, payment, and healthcare operations as outlined in the HIPAA Privacy Notice.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="consent-item">
+                            <input type="checkbox" id="biometric" name="biometric" required>
+                            <div class="consent-text">
+                                <h4>Biometric Data Collection</h4>
+                                <p>I consent to the collection, storage, and use of my biometric data (facial recognition and fingerprints) for secure identification and emergency medical access.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="consent-item">
+                            <input type="checkbox" id="emergency" name="emergency" required>
+                            <div class="consent-text">
+                                <h4>Emergency Medical Access</h4>
+                                <p>I understand that my medical information may be accessed by authorized medical personnel in emergency situations for life-saving treatment.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="consent-item">
+                            <input type="checkbox" id="terms" name="terms" required>
+                            <div class="consent-text">
+                                <h4>Terms of Service</h4>
+                                <p>I have read and agree to the MedID Terms of Service and understand my rights regarding data access, modification, and deletion.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f0f8ff; border: 1px solid #1976d2; border-radius: 8px; padding: 1.5rem; margin-top: 2rem;">
+                        <h4 style="color: #1976d2; margin-bottom: 1rem;">📋 Registration Summary</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 0.9rem;">
+                            <div><strong>Personal Info:</strong> ✓ Complete</div>
+                            <div><strong>Medical History:</strong> ✓ Complete</div>
+                            <div><strong>Biometric Data:</strong> ✓ Captured</div>
+                            <div><strong>Consent Forms:</strong> ⏳ Pending</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function captureFace() {
+            showNotification('Face capture simulation started', 'info');
+            setTimeout(() => {
+                showNotification('Facial image captured successfully (98% quality)', 'success');
+                document.getElementById('capturedSamples').style.display = 'grid';
+            }, 2000);
+        }
+
+        function captureFingerprint() {
+            showNotification('Fingerprint capture simulation started', 'info');
+            setTimeout(() => {
+                showNotification('Fingerprint captured successfully (95% quality)', 'success');
+                document.getElementById('capturedSamples').style.display = 'grid';
+            }, 1500);
+        }
+
+        function testCamera() {
+            showNotification('Camera test: Video feed active', 'info');
+        }
+
+        function completeRegistration() {
+            const requiredCheckboxes = document.querySelectorAll('input[type="checkbox"][required]');
+            let allChecked = true;
+            
+            requiredCheckboxes.forEach(checkbox => {
+                if (!checkbox.checked) {
+                    allChecked = false;
+                }
+            });
+            
+            if (allChecked) {
+                showNotification('Registration completed successfully! Patient ID: PAT-' + Math.floor(Math.random() * 900000 + 100000), 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                showNotification('Please complete all required consent agreements', 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 2rem;
+                right: 2rem;
+                background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                max-width: 400px;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 4000);
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Auto-fill demo data
+        setTimeout(() => {
+            document.getElementById('firstName').value = 'John';
+            document.getElementById('lastName').value = 'Doe';
+            document.getElementById('email').value = 'john.doe@email.com';
+            document.getElementById('phone').value = '+1-555-0123';
+        }, 1000);
+    </script>
+</body>
+</html>

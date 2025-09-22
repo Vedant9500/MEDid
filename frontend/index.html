@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedID - UI Demo Collection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 4rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-icon {
+            font-size: 5rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .header-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .header-subtitle {
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .demo-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .demo-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .demo-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .emergency .demo-icon {
+            color: #f44336;
+        }
+
+        .patient .demo-icon {
+            color: #2196f3;
+        }
+
+        .admin .demo-icon {
+            color: #9c27b0;
+        }
+
+        .demo-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .demo-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .demo-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .demo-features li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .demo-features li::before {
+            content: '✓';
+            color: #4caf50;
+            font-weight: bold;
+            margin-right: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .demo-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .demo-button .material-icons {
+            margin-right: 0.5rem;
+        }
+
+        .tech-stack {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .tech-stack h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #333;
+        }
+
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .tech-item {
+            background: #f8f9fa;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+
+        .note {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .note h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 2.5rem;
+            }
+            
+            .tech-list {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <span class="material-icons header-icon">medical_information</span>
+            <h1 class="header-title">MedID UI Demos</h1>
+            <p class="header-subtitle">
+                Modern, secure, and intuitive user interfaces for the biometric health passport system. 
+                Each demo showcases different aspects of the MedID platform with real-time interactions and responsive design.
+            </p>
+        </div>
+
+        <!-- Important Note -->
+        <div class="note">
+            <h3>🚀 Interactive Demonstrations</h3>
+            <p>These are functional UI prototypes with simulated data and interactions. Click buttons to see animations, form validations, and responsive behaviors. The full React application includes real biometric processing, WebSocket connections, and backend integration.</p>
+        </div>
+
+        <!-- Demo Cards -->
+        <div class="demo-grid">
+            <!-- Emergency Dashboard -->
+            <a href="emergency-dashboard-demo.html" class="demo-card emergency">
+                <span class="material-icons demo-icon">emergency</span>
+                <h3 class="demo-title">Emergency Access Dashboard</h3>
+                <p class="demo-description">
+                    Critical care interface for rapid patient identification during emergency situations.
+                </p>
+                <ul class="demo-features">
+                    <li>Real-time biometric scanning interface</li>
+                    <li>Live camera feed with quality indicators</li>
+                    <li>Instant patient identification results</li>
+                    <li>Emergency alert system integration</li>
+                    <li>Critical medical information display</li>
+                    <li>Audit trail for compliance tracking</li>
+                </ul>
+                <div class="demo-button">
+                    <span class="material-icons">visibility</span>
+                    View Emergency Dashboard
+                </div>
+            </a>
+
+            <!-- Patient Registration -->
+            <a href="patient-registration-demo.html" class="demo-card patient">
+                <span class="material-icons demo-icon">person_add</span>
+                <h3 class="demo-title">Patient Registration Portal</h3>
+                <p class="demo-description">
+                    Comprehensive enrollment system with multi-step wizard and biometric capture.
+                </p>
+                <ul class="demo-features">
+                    <li>4-step registration wizard</li>
+                    <li>Real-time form validation</li>
+                    <li>Biometric data capture interface</li>
+                    <li>Medical history collection</li>
+                    <li>Privacy consent management</li>
+                    <li>Progress tracking and completion</li>
+                </ul>
+                <div class="demo-button">
+                    <span class="material-icons">visibility</span>
+                    View Registration Portal
+                </div>
+            </a>
+
+            <!-- Admin Dashboard -->
+            <a href="admin-dashboard-demo.html" class="demo-card admin">
+                <span class="material-icons demo-icon">admin_panel_settings</span>
+                <h3 class="demo-title">Administrative Dashboard</h3>
+                <p class="demo-description">
+                    Comprehensive system management with analytics, monitoring, and security oversight.
+                </p>
+                <ul class="demo-features">
+                    <li>Real-time system monitoring</li>
+                    <li>Patient management interface</li>
+                    <li>Security and audit logging</li>
+                    <li>Analytics and reporting</li>
+                    <li>User access control</li>
+                    <li>System configuration tools</li>
+                </ul>
+                <div class="demo-button">
+                    <span class="material-icons">visibility</span>
+                    View Admin Dashboard
+                </div>
+            </a>
+        </div>
+
+        <!-- Technology Stack -->
+        <div class="tech-stack">
+            <h2>Technology Stack</h2>
+            <div class="tech-list">
+                <span class="tech-item">React 18</span>
+                <span class="tech-item">TypeScript</span>
+                <span class="tech-item">Material-UI 5</span>
+                <span class="tech-item">React Router 6</span>
+                <span class="tech-item">React Hook Form</span>
+                <span class="tech-item">Framer Motion</span>
+                <span class="tech-item">React Webcam</span>
+                <span class="tech-item">Socket.IO</span>
+                <span class="tech-item">Axios</span>
+                <span class="tech-item">React Query</span>
+                <span class="tech-item">Yup Validation</span>
+                <span class="tech-item">Date-fns</span>
+                <span class="tech-item">Recharts</span>
+                <span class="tech-item">HIPAA Compliant</span>
+            </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div class="note">
+            <h3>💻 Full React Application</h3>
+            <p>The complete frontend is built with modern React architecture including components, services, routing, state management, and real-time features. These static demos showcase the visual design and interactions - the full application includes WebSocket connections to the biometric service running on localhost:8001.</p>
+        </div>
+    </div>
+</body>
+</html>
