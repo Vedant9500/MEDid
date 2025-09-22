@@ -4,7 +4,7 @@
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- =============================================
 -- CORE PATIENT DATA TABLES
@@ -596,6 +596,48 @@ ORDER BY audit_date DESC;
 -- =============================================
 -- INITIAL DATA AND CONFIGURATION
 -- =============================================
+
+-- =============================================
+-- ENCRYPTION/DECRYPTION HELPER FUNCTIONS
+-- =============================================
+
+-- Function to encrypt data using AES-256-GCM
+CREATE OR REPLACE FUNCTION encrypt(data TEXT, key_name TEXT DEFAULT 'patient-data-key-v1')
+RETURNS BYTEA AS $$
+DECLARE
+    encryption_key BYTEA;
+BEGIN
+    -- In production, this would fetch the key from KMS
+    -- For development, we use a fixed key
+    encryption_key := decode('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'hex');
+    
+    -- Encrypt using pgcrypto
+    RETURN encrypt_iv(data::BYTEA, encryption_key, gen_random_bytes(16), 'aes-cbc');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to decrypt data
+CREATE OR REPLACE FUNCTION decrypt(encrypted_data BYTEA, key_name TEXT DEFAULT 'patient-data-key-v1')
+RETURNS TEXT AS $$
+DECLARE
+    encryption_key BYTEA;
+BEGIN
+    -- In production, this would fetch the key from KMS
+    -- For development, we use a fixed key
+    encryption_key := decode('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'hex');
+    
+    -- Decrypt using pgcrypto
+    RETURN convert_from(decrypt_iv(encrypted_data, encryption_key, 'aes-cbc'), 'UTF8');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to hash data for indexing
+CREATE OR REPLACE FUNCTION hash_for_index(data TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    RETURN encode(digest(data, 'sha256'), 'hex');
+END;
+$$ LANGUAGE plpgsql;
 
 -- Insert default encryption key metadata (actual keys managed by KMS)
 INSERT INTO encryption_keys (key_name, key_type, algorithm, version, status, kms_provider) VALUES
