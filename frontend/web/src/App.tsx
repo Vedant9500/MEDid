@@ -14,6 +14,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Pages - Lazy loaded for better performance
 const LoginPage = React.lazy(() => import('./pages/Auth/LoginPage'));
+const RegistrationPage = React.lazy(() => import('./pages/Auth/RegistrationPage'));
 const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage'));
 const EmergencyPage = React.lazy(() => import('./pages/Emergency/EmergencyPage'));
 const PatientRegistrationPage = React.lazy(() => import('./pages/Patient/PatientRegistrationPage'));
@@ -166,7 +167,8 @@ const App: React.FC = () => {
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/login" element={<LoginPage />} />
-                  
+                  <Route path="/register" element={<RegistrationPage />} />
+
                   {/* Protected Routes */}
                   <Route
                     path="/"

@@ -149,61 +149,62 @@ const LoginPage: React.FC = () => {
               </Button>
             </Box>
 
-            {/* Demo Accounts */}
             <Divider sx={{ my: 3 }}>
-              <Chip label="Demo Accounts" size="small" />
+              <Chip label="OR" />
             </Divider>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Security />}
-                onClick={() => handleDemoLogin('admin')}
-                fullWidth
-              >
-                Admin Demo (admin/admin123)
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<LocalHospital />}
-                onClick={() => handleDemoLogin('doctor')}
-                fullWidth
-              >
-                Doctor Demo (doctor/doctor123)
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => handleDemoLogin('staff')}
-                fullWidth
-              >
-                Staff Demo (staff/staff123)
-              </Button>
-            </Box>
 
             {/* Emergency Access */}
-            <Divider sx={{ my: 3 }}>
-              <Chip label="Emergency" size="small" color="error" />
-            </Divider>
-            
             <Button
-              variant="contained"
-              color="error"
               fullWidth
-              startIcon={<LocalHospital />}
+              variant="outlined"
+              color="error"
+              startIcon={<MedicalServices />}
               onClick={handleEmergencyAccess}
-              sx={{
-                animation: 'pulse 2s infinite',
-                '@keyframes pulse': {
-                  '0%, 100%': { opacity: 1 },
-                  '50%': { opacity: 0.8 },
-                },
-              }}
+              sx={{ mb: 2 }}
             >
-              Emergency Access (No Login Required)
+              Emergency Biometric Access
             </Button>
+            
+            {/* Registration Link */}
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Typography variant="body2">
+                Don't have an account?{' '}
+                <a href="/register" style={{ textDecoration: 'none', color: '#667eea' }}>
+                  Sign Up
+                </a>
+              </Typography>
+            </Box>
+
+            {/* Demo Buttons */}
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" gutterBottom>
+                Demo Accounts
+              </Typography>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                <Button
+                  size="small"
+                  onClick={() => handleDemoLogin('admin')}
+                  sx={{ mx: 0.5 }}
+                >
+                  Admin
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => handleDemoLogin('doctor')}
+                  sx={{ mx: 0.5 }}
+                >
+                  Doctor
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => handleDemoLogin('staff')}
+                  sx={{ mx: 0.5 }}
+                >
+                  Staff
+                </Button>
+              </Box>
+            </Box>
 
             {/* Footer */}
             <Typography
