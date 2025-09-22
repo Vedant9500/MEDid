@@ -20,4 +20,7 @@ urlpatterns = [
     
     # Dashboard endpoints
     path('dashboard/stats', views.dashboard_stats, name='dashboard_stats'),
+    path('emergency/stats', views.emergency_stats, name='emergency_stats'),
+    path('system/health', views.system_health, name='system_health'),
+    path('system/recent-accesses', views.recent_accesses, name='recent_accesses'),
 ]

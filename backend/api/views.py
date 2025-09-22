@@ -186,3 +186,64 @@ def dashboard_stats(request):
         'emergency_cases': 2,
         'system_status': 'operational'
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def emergency_stats(request):
+    """Get emergency dashboard statistics"""
+    return Response({
+        'active_emergencies': 3,
+        'pending_cases': 7,
+        'available_beds': 15,
+        'staff_on_duty': 12,
+        'response_time_avg': '4.2 minutes'
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def system_health(request):
+    """Get system health status"""
+    return Response({
+        'status': 'healthy',
+        'uptime': '99.9%',
+        'database_status': 'connected',
+        'biometric_service': 'online',
+        'last_backup': '2025-09-22T10:00:00Z',
+        'cpu_usage': 45,
+        'memory_usage': 62,
+        'disk_usage': 78
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recent_accesses(request):
+    """Get recent access logs"""
+    return Response([
+        {
+            'id': 1,
+            'patient_name': 'John Smith',
+            'accessed_by': 'Dr. Demo User',
+            'timestamp': '2025-09-22T15:30:00Z',
+            'action': 'Biometric Scan',
+            'status': 'success'
+        },
+        {
+            'id': 2,
+            'patient_name': 'Sarah Johnson',
+            'accessed_by': 'Dr. Demo User',
+            'timestamp': '2025-09-22T14:45:00Z',
+            'action': 'Patient Lookup',
+            'status': 'success'
+        },
+        {
+            'id': 3,
+            'patient_name': 'Robert Brown',
+            'accessed_by': 'Dr. Demo User',
+            'timestamp': '2025-09-22T14:20:00Z',
+            'action': 'Emergency Access',
+            'status': 'success'
+        }
+    ])
