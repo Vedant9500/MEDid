@@ -117,13 +117,8 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       // Capture image
       const imageSrc = webcamRef.current.getScreenshot();
       if (!imageSrc) {
-        throw new (Error as any)('Failed to capture image from camera');
+        throw new (globalThis.Error)('Failed to capture image from camera');
       }
-
-      // Convert base64 to File
-      const response = await fetch(imageSrc);
-      const blob = await response.blob();
-      const file = new File([blob], 'biometric-scan.jpg', { type: 'image/jpeg' });
 
       // Step 1: Quality Analysis (20%)
       setScanProgress(20);
@@ -133,60 +128,128 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       // Check if quality is sufficient
       const averageQuality = quality.reduce((sum, q) => sum + q.value, 0) / quality.length;
       if (averageQuality < 70) {
-        throw new (Error as any)('Image quality too low. Please ensure good lighting and focus.');
+        throw new (globalThis.Error)('Image quality too low. Please ensure good lighting and focus.');
       }
 
       // Step 2: Liveness Detection (40%)
       setScanProgress(40);
+      // Convert base64 to File for liveness check
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+      const file = new File([blob], 'biometric-scan.jpg', { type: 'image/jpeg' });
+      
       const livenessCheck = await apiService.checkLiveness(file);
       setLivenessResult(livenessCheck);
 
       if (!livenessCheck.isLive && !isEmergencyMode) {
-        throw new (Error as any)('Liveness check failed. Please use a live image.');
+        throw new (globalThis.Error)('Liveness check failed. Please use a live image.');
       }
 
-      // Step 3: Template Extraction (60%)
+      // Step 3: Emergency Access Request (if in emergency mode)
       setScanProgress(60);
-      const templateResult = await apiService.extractBiometricTemplate(file);
+      
+      if (isEmergencyMode) {
+        // Use emergency access endpoint for break-glass access
+        const emergencyData = {
+          face_image_base64: imageSrc.split(',')[1], // Remove data:image/jpeg;base64, prefix
+          emergency_reason: 'Medical emergency - patient identification required',
+          accessing_device_id: 'EMERGENCY_DEVICE_001',
+          accessing_user: 'Emergency Medical Staff',
+          organization: 'Emergency Department',
+          location: 'Emergency Room',
+          confidence_threshold: 0.5 // Lower threshold for emergencies
+        };
 
-      if (!templateResult.success) {
-        throw new (Error as any)('Failed to extract biometric template');
-      }
+        setScanProgress(80);
+        const emergencyResult = await apiService.requestEmergencyAccess(
+          '', // patient_id not needed for biometric matching
+          emergencyData.emergency_reason,
+          'emergency',
+          emergencyData.location
+        );
 
-      // Step 4: Template Matching (80%)
-      setScanProgress(80);
-      const matchResult = await apiService.matchBiometric(
-        templateResult.template_data,
-        isEmergencyMode ? 0.5 : 0.6 // Lower threshold for emergency mode
-      );
+        setScanProgress(100);
 
-      // Step 5: Complete (100%)
-      setScanProgress(100);
+        if (emergencyResult.match_found) {
+          const matchResult: BiometricMatchResult = {
+            matchFound: true,
+            patientId: emergencyResult.patient_id,
+            confidence: emergencyResult.match_confidence,
+            emergencyData: emergencyResult.emergency_data
+          };
 
-      setLastScanTime(new Date());
-      onScanComplete(matchResult);
+          setLastScanTime(new Date());
+          onScanComplete(matchResult);
 
-      if (matchResult.matchFound && matchResult.patientId) {
-        // Fetch patient details
-        try {
-          const patient = await apiService.getPatient(matchResult.patientId);
+          // Create patient object from emergency data
+          const patient: Patient = {
+            id: emergencyResult.patient_id,
+            name: emergencyResult.emergency_data.name,
+            blood_group: emergencyResult.emergency_data.blood_group,
+            gender: 'NP' as const, // Default value since emergency data may not include gender
+            emergency_contact_name: emergencyResult.emergency_data.emergency_contact?.name || '',
+            emergency_contact_phone: emergencyResult.emergency_data.emergency_contact?.phone || '',
+            allergies: emergencyResult.emergency_data.allergies || [],
+            current_medications: emergencyResult.emergency_data.current_medications || [],
+            medical_conditions: emergencyResult.emergency_data.medical_conditions || [],
+            emergency_summary: emergencyResult.emergency_data.emergency_summary || '',
+            consent_status: 'granted' as const,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
           onPatientFound(patient);
           
           enqueueSnackbar(
-            `Patient identified: ${patient.name} (${(matchResult.confidence * 100).toFixed(1)}% confidence)`,
+            `EMERGENCY ACCESS: ${patient.name} identified (${(emergencyResult.match_confidence * 100).toFixed(1)}% confidence)`,
             { variant: 'success' }
           );
-        } catch (error) {
-          enqueueSnackbar('Patient identified but details could not be loaded', { variant: 'warning' });
+        } else {
+          enqueueSnackbar('No matching patient found in emergency database', { variant: 'warning' });
         }
+
       } else {
-        enqueueSnackbar('No matching patient found in database', { variant: 'info' });
+        // Standard biometric scan (non-emergency)
+        setScanProgress(60);
+        const templateResult = await apiService.extractBiometricTemplate(file);
+
+        if (!templateResult.success) {
+          throw new (globalThis.Error)('Failed to extract biometric template');
+        }
+
+        setScanProgress(80);
+        const matchResult = await apiService.matchBiometric(
+          templateResult.template_data,
+          0.6 // Standard threshold
+        );
+
+        setScanProgress(100);
+
+        setLastScanTime(new Date());
+        onScanComplete(matchResult);
+
+        if (matchResult.matchFound && matchResult.patientId) {
+          try {
+            const patient = await apiService.getPatient(matchResult.patientId);
+            onPatientFound(patient);
+            
+            enqueueSnackbar(
+              `Patient identified: ${patient.name} (${(matchResult.confidence * 100).toFixed(1)}% confidence)`,
+              { variant: 'success' }
+            );
+          } catch (error) {
+            enqueueSnackbar('Patient identified but details could not be loaded', { variant: 'warning' });
+          }
+        } else {
+          enqueueSnackbar('No matching patient found in database', { variant: 'info' });
+        }
       }
 
     } catch (error) {
       console.error('Biometric scan error:', error);
       enqueueSnackbar(
-        (error as any) instanceof Error ? (error as any).message : 'Scan failed',
+        error instanceof globalThis.Error ? (error as any).message : 'Scan failed',
         { variant: 'error' }
       );
     } finally {

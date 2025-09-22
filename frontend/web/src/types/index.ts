@@ -14,16 +14,35 @@ export interface User {
 export interface Patient {
   id: string;
   name: string;
-  dateOfBirth: string;
-  gender: 'M' | 'F' | 'O' | 'U';
-  bloodGroup: string;
-  emergencyContact: string;
-  medicalHistory: MedicalRecord[];
+  date_of_birth?: string;
+  age?: number; // Calculated field
+  gender: 'M' | 'F' | 'O' | 'NP';
+  blood_group: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  phone_number?: string;
+  email?: string;
   allergies: string[];
-  medications: Medication[];
-  biometricEnrolled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  current_medications: any[];
+  medical_conditions: any[];
+  emergency_summary: string;
+  abha_id?: string;
+  consent_status: 'granted' | 'revoked' | 'pending' | 'expired';
+  consent_granted_at?: string;
+  consent_version?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_accessed?: string;
+  
+  // Legacy fields for compatibility
+  dateOfBirth?: string;
+  emergencyContact?: string;
+  medicalHistory?: MedicalRecord[];
+  medications?: Medication[];
+  biometricEnrolled?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface MedicalRecord {
@@ -60,9 +79,11 @@ export interface BiometricMatchResult {
   patientId?: string;
   confidence: number;
   matchFound: boolean;
-  processingTimeMs: number;
-  algorithmVersion: string;
-  requestId: string;
+  processingTimeMs?: number;
+  algorithmVersion?: string;
+  requestId?: string;
+  templateId?: string;
+  emergencyData?: any; // Emergency patient data
 }
 
 export interface LivenessCheckResult {
