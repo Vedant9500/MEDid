@@ -83,6 +83,75 @@ def login(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    """Register a new user (doctor/nurse/admin)"""
+    try:
+        data = request.data
+        
+        # Validate required fields
+        required_fields = ['username', 'email', 'password', 'first_name', 'last_name']
+        for field in required_fields:
+            if not data.get(field):
+                return Response(
+                    {'error': f'{field} is required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Check if user already exists
+        if User.objects.filter(username=data['username']).exists():
+            return Response(
+                {'error': 'Username already exists'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if User.objects.filter(email=data['email']).exists():
+            return Response(
+                {'error': 'Email already exists'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create new user
+        user = User.objects.create_user(
+            username=data['username'],
+            email=data['email'],
+            password=data['password'],
+            first_name=data['first_name'],
+            last_name=data['last_name']
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            event_type='system_login',  # Using existing event type
+            event_description=f'User {user.username} registered successfully',
+            user_id=str(user.id),
+            ip_address=request.META.get('REMOTE_ADDR', ''),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            event_data={
+                'username': user.username,
+                'email': user.email,
+                'full_name': f"{user.first_name} {user.last_name}"
+            }
+        )
+        
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'message': 'User registered successfully'
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"User registration failed: {str(e)}")
+        return Response(
+            {'error': 'Registration failed'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_user(request):
     """Logout user and invalidate token"""

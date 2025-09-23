@@ -138,7 +138,7 @@ class ApiService {
   }
 
   async createPatient(patientData: Partial<Patient>): Promise<Patient> {
-    const response = await this.api.post('/patients', patientData);
+    const response = await this.api.post('/patients/register', patientData);
     return response.data;
   }
 

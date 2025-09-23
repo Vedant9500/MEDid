@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     # Authentication endpoints
     path('auth/login', views.login, name='login'),
+    path('auth/register', views.register_user, name='register_user'),
     path('auth/demo-token', views.demo_token, name='demo_token'),
     path('auth/profile', views.get_profile, name='profile'),
     
