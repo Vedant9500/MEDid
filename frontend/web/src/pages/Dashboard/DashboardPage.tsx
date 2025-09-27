@@ -89,50 +89,47 @@ const DashboardPage: React.FC = () => {
       setError('');
       
       // Load dashboard statistics  
-      const [healthResponse, activityResponse] = await Promise.all([
+      const [statsResponse, healthResponse, activityResponse] = await Promise.all([
+        apiService.getDashboardStats(),
         apiService.getSystemHealth(),
-        apiService.getAuditLogs({ limit: 10 })
+        apiService.getRecentAccesses()
       ]);
       
-      // Create dashboard stats from real data
-      const patientCount = activityResponse.filter(log => log.operationType === 'patient_created').length;
-      const recentRegistrations = activityResponse.filter(log => 
-        log.operationType === 'patient_created' && 
-        new Date(log.timestamp) > new Date(Date.now() - 24*60*60*1000)
-      ).length;
-      const emergencyAccess = activityResponse.filter(log => log.operationType === 'emergency_access').length;
+      // Use real dashboard stats from backend
       
       const realStats: DashboardStats = {
-        total_patients: patientCount,
-        biometric_enrolled: Math.floor(patientCount * 0.85), // Calculated from patients
-        recent_registrations: recentRegistrations,
-        recent_emergency_access: emergencyAccess,
-        active_emergency_sessions: 0, // Real data from backend needed
-        enrollment_rate: patientCount > 0 ? (Math.floor(patientCount * 0.85) / patientCount) * 100 : 0,
-        system_status: healthResponse.status,
-        last_updated: new Date().toISOString()
+        total_patients: statsResponse.total_patients || 0,
+        biometric_enrolled: statsResponse.total_enrolled || 0,
+        recent_registrations: statsResponse.recent_registrations || 0,
+        recent_emergency_access: statsResponse.recent_emergency_access || 0,
+        active_emergency_sessions: statsResponse.active_sessions || 0,
+        enrollment_rate: statsResponse.enrollment_rate || 0,
+        system_status: healthResponse.status || 'unknown',
+        last_updated: statsResponse.last_updated || new Date().toISOString()
       };
       
       const healthData: SystemHealth = {
-        status: healthResponse.status,
-        uptime: `${Math.floor(healthResponse.uptimeSeconds / 3600)}h ${Math.floor((healthResponse.uptimeSeconds % 3600) / 60)}m`,
-        database: 'Connected',
-        biometric_service: 'Active',
+        status: (healthResponse as any).status || 'unknown',
+        uptime: (healthResponse as any).uptime || 'Unknown', 
+        database: (healthResponse as any).database_status || 'Unknown',
+        biometric_service: (healthResponse as any).biometric_service || 'Unknown',
         last_check: new Date().toISOString()
       };
       
       setDashboardStats(realStats);
       setSystemHealth(healthData);
-      setRecentActivity(activityResponse.map((log: any) => ({
-        id: log.id,
-        type: log.operationType === 'patient_created' ? 'registration' :
-              log.operationType === 'emergency_access' ? 'emergency' :
-              log.operationType === 'login' ? 'security' : 'system',
-        description: formatActivityDescription(log),
-        timestamp: log.timestamp,
-        user: log.userId,
-        patient_id: log.patientId
-      })));
+      // Map recent accesses to activity format
+      const mappedActivity: RecentActivity[] = activityResponse.map((access: any, index: number) => ({
+        id: access.id || index,
+        type: access.action === 'Emergency Access' ? 'emergency' : 
+              access.action === 'Patient Lookup' ? 'registration' : 'system',
+        description: `${access.action} for ${access.patient_name}`,
+        timestamp: access.timestamp,
+        user: access.accessed_by,
+        patient_id: access.patient_id
+      }));
+      
+      setRecentActivity(mappedActivity);
       
       setLastRefresh(new Date());
     } catch (err: any) {

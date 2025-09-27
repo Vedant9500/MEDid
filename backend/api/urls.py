@@ -11,9 +11,12 @@ urlpatterns = [
     # Patient endpoints
     path('patients/search', views.search_patients, name='search_patients'),
     path('patients/<str:patient_id>', views.get_patient, name='get_patient'),
+    path('patients/<str:patient_id>/update', views.update_patient, name='update_patient'),
     path('patients/register', views.register_patient, name='register_patient'),
     
     # Biometric endpoints
+    path('biometric/extract-template', views.extract_biometric_template, name='extract_template'),
+    path('biometric/liveness-check', views.liveness_check, name='liveness_check'),
     path('biometric/scan', views.biometric_scan, name='biometric_scan'),
     
     # Emergency endpoints
