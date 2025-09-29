@@ -20,6 +20,10 @@ const EmergencyPage = React.lazy(() => import('./pages/Emergency/EmergencyPage')
 const PatientRegistrationPage = React.lazy(() => import('./pages/Patient/PatientRegistrationPage'));
 const PatientSearchPage = React.lazy(() => import('./pages/Patient/PatientSearchPage'));
 const AdminPage = React.lazy(() => import('./pages/Admin/AdminPage'));
+const UserManagementPage = React.lazy(() => import('./pages/Admin/UserManagementPage'));
+const ReportsPage = React.lazy(() => import('./pages/Admin/ReportsPage'));
+const AuditLogsPage = React.lazy(() => import('./pages/Admin/AuditLogsPage'));
+const SettingsPage = React.lazy(() => import('./pages/Admin/SettingsPage'));
 const ProfilePage = React.lazy(() => import('./pages/Profile/ProfilePage'));
 const NotFoundPage = React.lazy(() => import('./pages/Error/NotFoundPage'));
 
@@ -186,6 +190,10 @@ const App: React.FC = () => {
                       <Route path="search" element={<PatientSearchPage />} />
                     </Route>
                     <Route path="admin" element={<AdminPage />} />
+                    <Route path="admin/users" element={<UserManagementPage />} />
+                    <Route path="admin/reports" element={<ReportsPage />} />
+                    <Route path="admin/audit-logs" element={<AuditLogsPage />} />
+                    <Route path="admin/settings" element={<SettingsPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                   </Route>
                   
