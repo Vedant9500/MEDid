@@ -1,8 +1,23 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse, BiometricMatchResult, LivenessCheckResult, SystemHealth, Patient, User, AuditLog } from '../types';
+
+// Extend Axios config to include metadata
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  metadata?: { startTime: number };
+}
+
+// Enhanced error interface
+interface ApiError {
+  message: string;
+  status?: number;
+  code?: string;
+  details?: any;
+}
 
 class ApiService {
   private api: AxiosInstance;
+  private requestCache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     this.api = axios.create({
@@ -22,20 +37,95 @@ class ApiService {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(this.handleError(error))
     );
 
-    // Response interceptor for error handling
+    // Response interceptor for enhanced error handling and logging
     this.api.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Log successful requests in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+        }
+        return response;
+      },
       (error) => {
+        // Log failed requests
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`);
+        }
+        
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
           window.location.href = '/login';
         }
-        return Promise.reject(error);
+        return Promise.reject(this.handleError(error));
       }
     );
+  }
+
+  // Enhanced error handling
+  private handleError(error: AxiosError): ApiError {
+    if (error.response) {
+      // Server responded with error status
+      const responseData = error.response.data as any;
+      return {
+        message: responseData?.message || responseData?.error || 'Server error occurred',
+        status: error.response.status,
+        code: responseData?.code,
+        details: responseData
+      };
+    } else if (error.request) {
+      // Request made but no response received
+      return {
+        message: 'Network error - please check your connection',
+        code: 'NETWORK_ERROR'
+      };
+    } else {
+      // Something else happened
+      return {
+        message: error.message || 'An unexpected error occurred',
+        code: 'UNKNOWN_ERROR'
+      };
+    }
+  }
+
+  // Retry mechanism for critical requests
+  private async retryRequest<T>(
+    requestFn: () => Promise<T>, 
+    maxRetries: number = 3, 
+    delay: number = 1000
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await requestFn();
+      } catch (error) {
+        if (attempt === maxRetries) throw error;
+        
+        // Only retry on network errors or 5xx status codes
+        const apiError = error as ApiError;
+        if (apiError.code === 'NETWORK_ERROR' || (apiError.status && apiError.status >= 500)) {
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
+  // Cache management
+  private getCachedData(key: string): any | null {
+    const cached = this.requestCache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data;
+    }
+    this.requestCache.delete(key);
+    return null;
+  }
+
+  private setCachedData(key: string, data: any): void {
+    this.requestCache.set(key, { data, timestamp: Date.now() });
   }
 
   // Authentication
@@ -45,13 +135,51 @@ class ApiService {
   }
 
   async register(userData: any): Promise<User> {
-    const response = await this.api.post('/auth/register', userData);
-    return response.data;
+    try {
+      // Validate required fields
+      const requiredFields = ['username', 'email', 'password', 'firstName', 'lastName'];
+      const missingFields = requiredFields.filter(field => !userData[field]);
+      
+      if (missingFields.length > 0) {
+        throw {
+          message: `Missing required fields: ${missingFields.join(', ')}`,
+          code: 'VALIDATION_ERROR'
+        } as ApiError;
+      }
+
+      const response = await this.retryRequest(
+        () => this.api.post('/auth/register', userData)
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
   }
 
   async login(email: string, password: string): Promise<{ access_token: string; user: User }> {
-    const response = await this.api.post('/auth/login', { email, password });
-    return response.data;
+    try {
+      if (!email || !password) {
+        throw {
+          message: 'Email and password are required',
+          code: 'VALIDATION_ERROR'
+        } as ApiError;
+      }
+
+      const response = await this.retryRequest(
+        () => this.api.post('/auth/login', { email, password })
+      );
+      
+      // Store token automatically
+      if (response.data.access_token) {
+        localStorage.setItem('auth_token', response.data.access_token);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
   }
 
   async getProfile(): Promise<User> {
@@ -80,6 +208,37 @@ class ApiService {
     return response.data;
   }
 
+  // Dashboard Operations
+  async getDashboardStats(): Promise<any> {
+    try {
+      const cacheKey = 'dashboard_stats';
+      const cached = this.getCachedData(cacheKey);
+      if (cached) return cached;
+
+      const response = await this.retryRequest(
+        () => this.api.get('/dashboard/stats')
+      );
+      
+      this.setCachedData(cacheKey, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+      throw error;
+    }
+  }
+
+  async getRecentAccesses(): Promise<any[]> {
+    try {
+      const response = await this.api.get('/system/recent-accesses');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to load recent accesses:', error);
+      throw error;
+    }
+  }
+
+
+
   // Biometric Operations
   async extractBiometricTemplate(
     file: File, 
@@ -87,23 +246,56 @@ class ApiService {
   ): Promise<{
     success: boolean;
     template_data: string;
-    quality_metrics: any;
-    face_location: number[];
-    processing_time_ms: number;
+    quality_score: number;
+    confidence: number;
     request_id: string;
   }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (patientId) {
-      formData.append('patient_id', patientId);
-    }
+    try {
+      // Validate file
+      if (!file) {
+        throw {
+          message: 'No image file provided',
+          code: 'VALIDATION_ERROR'
+        } as ApiError;
+      }
 
-    const response = await this.api.post('/biometric/extract-template', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        throw {
+          message: 'File must be an image',
+          code: 'INVALID_FILE_TYPE'
+        } as ApiError;
+      }
+
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        throw {
+          message: 'Image file too large (max 10MB)',
+          code: 'FILE_TOO_LARGE'
+        } as ApiError;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (patientId) {
+        formData.append('patient_id', patientId);
+      }
+
+      const response = await this.retryRequest(
+        () => this.api.post('/biometric/extract-template', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 45000, // Extended timeout for biometric processing
+        }),
+        2 // Only retry once for file uploads
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Biometric template extraction failed:', error);
+      throw error;
+    }
   }
 
   async matchBiometric(templateData: string, threshold: number = 0.6): Promise<BiometricMatchResult> {
@@ -138,7 +330,7 @@ class ApiService {
   }
 
   async createPatient(patientData: Partial<Patient>): Promise<Patient> {
-    const response = await this.api.post('/patients', patientData);
+    const response = await this.api.post('/patients/register', patientData);
     return response.data;
   }
 

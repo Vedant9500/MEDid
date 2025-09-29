@@ -83,6 +83,75 @@ def login(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    """Register a new user (doctor/nurse/admin)"""
+    try:
+        data = request.data
+        
+        # Validate required fields
+        required_fields = ['username', 'email', 'password', 'first_name', 'last_name']
+        for field in required_fields:
+            if not data.get(field):
+                return Response(
+                    {'error': f'{field} is required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Check if user already exists
+        if User.objects.filter(username=data['username']).exists():
+            return Response(
+                {'error': 'Username already exists'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if User.objects.filter(email=data['email']).exists():
+            return Response(
+                {'error': 'Email already exists'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create new user
+        user = User.objects.create_user(
+            username=data['username'],
+            email=data['email'],
+            password=data['password'],
+            first_name=data['first_name'],
+            last_name=data['last_name']
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            event_type='system_login',  # Using existing event type
+            event_description=f'User {user.username} registered successfully',
+            user_id=str(user.id),
+            ip_address=request.META.get('REMOTE_ADDR', ''),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            event_data={
+                'username': user.username,
+                'email': user.email,
+                'full_name': f"{user.first_name} {user.last_name}"
+            }
+        )
+        
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'message': 'User registered successfully'
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        logger.error(f"User registration failed: {str(e)}")
+        return Response(
+            {'error': 'Registration failed'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_user(request):
     """Logout user and invalidate token"""
@@ -156,6 +225,40 @@ def get_patient(request, patient_id):
     patient = get_object_or_404(Patient, id=patient_id)
     serializer = PatientSerializer(patient)
     return Response(serializer.data)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_patient(request, patient_id):
+    """Update existing patient information"""
+    patient = get_object_or_404(Patient, id=patient_id)
+    
+    serializer = PatientRegistrationSerializer(patient, data=request.data, partial=True)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        serializer.save()
+        
+        # Log the update
+        AuditLog.objects.create(
+            operationType='Patient Update',
+            userId=request.user.id,
+            ipAddress=request.META.get('REMOTE_ADDR', ''),
+            details=f'Updated patient: {patient.full_name}'
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Patient updated successfully',
+            'patient': PatientSerializer(patient).data
+        })
+        
+    except Exception as e:
+        return Response({
+            'error': 'Update failed',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -308,6 +411,104 @@ def generate_emergency_summary(patient):
     summary_parts.append(f"EMERGENCY CONTACT: {patient.emergency_contact_name} - {patient.emergency_contact_phone}")
     
     return " | ".join(summary_parts)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def extract_biometric_template(request):
+    """
+    Extract biometric template from uploaded image
+    Used during patient registration process
+    """
+    import requests
+    
+    try:
+        if 'file' not in request.FILES:
+            return Response({
+                'error': 'No file provided',
+                'message': 'Please upload an image file'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        image_file = request.FILES['file']
+        
+        # Forward to DeepFace service
+        files = {'file': (image_file.name, image_file.read(), image_file.content_type)}
+        
+        extract_response = requests.post(
+            'http://localhost:8002/biometric/extract-template',
+            files=files,
+            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            timeout=15
+        )
+        
+        if extract_response.status_code == 200:
+            result = extract_response.json()
+            return Response({
+                'success': True,
+                'template_data': result.get('template_data'),
+                'quality_score': result.get('quality_score', 0.0),
+                'confidence': result.get('confidence', 0.0)
+            })
+        else:
+            return Response({
+                'error': 'Template extraction failed',
+                'message': extract_response.json().get('message', 'Unknown error')
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        return Response({
+            'error': 'Processing failed',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def liveness_check(request):
+    """
+    Perform liveness detection on uploaded image
+    Used to prevent spoofing attacks during registration
+    """
+    import requests
+    
+    try:
+        if 'file' not in request.FILES:
+            return Response({
+                'error': 'No file provided',
+                'message': 'Please upload an image file'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        image_file = request.FILES['file']
+        
+        # Forward to DeepFace service
+        files = {'file': (image_file.name, image_file.read(), image_file.content_type)}
+        
+        liveness_response = requests.post(
+            'http://localhost:8002/biometric/liveness-check',
+            files=files,
+            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            timeout=15
+        )
+        
+        if liveness_response.status_code == 200:
+            result = liveness_response.json()
+            return Response({
+                'success': True,
+                'is_live': result.get('is_live', False),
+                'confidence': result.get('confidence', 0.0),
+                'liveness_score': result.get('liveness_score', 0.0)
+            })
+        else:
+            return Response({
+                'error': 'Liveness check failed',
+                'message': liveness_response.json().get('message', 'Unknown error')
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        return Response({
+            'error': 'Processing failed',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

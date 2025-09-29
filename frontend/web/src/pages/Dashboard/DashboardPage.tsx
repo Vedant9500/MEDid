@@ -89,50 +89,47 @@ const DashboardPage: React.FC = () => {
       setError('');
       
       // Load dashboard statistics  
-      const [healthResponse, activityResponse] = await Promise.all([
+      const [statsResponse, healthResponse, activityResponse] = await Promise.all([
+        apiService.getDashboardStats(),
         apiService.getSystemHealth(),
-        apiService.getAuditLogs({ limit: 10 })
+        apiService.getRecentAccesses()
       ]);
       
-      // Create dashboard stats from real data
-      const patientCount = activityResponse.filter(log => log.operationType === 'patient_created').length;
-      const recentRegistrations = activityResponse.filter(log => 
-        log.operationType === 'patient_created' && 
-        new Date(log.timestamp) > new Date(Date.now() - 24*60*60*1000)
-      ).length;
-      const emergencyAccess = activityResponse.filter(log => log.operationType === 'emergency_access').length;
+      // Use real dashboard stats from backend
       
-      const mockStats: DashboardStats = {
-        total_patients: patientCount || 247, // Fallback to reasonable number
-        biometric_enrolled: Math.floor(patientCount * 0.85) || 210,
-        recent_registrations: recentRegistrations || 12,
-        recent_emergency_access: emergencyAccess || 8,
-        active_emergency_sessions: 3, // Will be calculated from real data later
-        enrollment_rate: patientCount > 0 ? (Math.floor(patientCount * 0.85) / patientCount) * 100 : 85.0,
-        system_status: healthResponse.status,
-        last_updated: new Date().toISOString()
+      const realStats: DashboardStats = {
+        total_patients: statsResponse.total_patients || 0,
+        biometric_enrolled: statsResponse.total_enrolled || 0,
+        recent_registrations: statsResponse.recent_registrations || 0,
+        recent_emergency_access: statsResponse.recent_emergency_access || 0,
+        active_emergency_sessions: statsResponse.active_sessions || 0,
+        enrollment_rate: statsResponse.enrollment_rate || 0,
+        system_status: healthResponse.status || 'unknown',
+        last_updated: statsResponse.last_updated || new Date().toISOString()
       };
       
       const healthData: SystemHealth = {
-        status: healthResponse.status,
-        uptime: `${Math.floor(healthResponse.uptimeSeconds / 3600)}h ${Math.floor((healthResponse.uptimeSeconds % 3600) / 60)}m`,
-        database: 'Connected',
-        biometric_service: 'Active',
+        status: (healthResponse as any).status || 'unknown',
+        uptime: (healthResponse as any).uptime || 'Unknown', 
+        database: (healthResponse as any).database_status || 'Unknown',
+        biometric_service: (healthResponse as any).biometric_service || 'Unknown',
         last_check: new Date().toISOString()
       };
       
-      setDashboardStats(mockStats);
+      setDashboardStats(realStats);
       setSystemHealth(healthData);
-      setRecentActivity(activityResponse.map((log: any) => ({
-        id: log.id,
-        type: log.operationType === 'patient_created' ? 'registration' :
-              log.operationType === 'emergency_access' ? 'emergency' :
-              log.operationType === 'login' ? 'security' : 'system',
-        description: formatActivityDescription(log),
-        timestamp: log.timestamp,
-        user: log.userId,
-        patient_id: log.patientId
-      })));
+      // Map recent accesses to activity format
+      const mappedActivity: RecentActivity[] = activityResponse.map((access: any, index: number) => ({
+        id: access.id || index,
+        type: access.action === 'Emergency Access' ? 'emergency' : 
+              access.action === 'Patient Lookup' ? 'registration' : 'system',
+        description: `${access.action} for ${access.patient_name}`,
+        timestamp: access.timestamp,
+        user: access.accessed_by,
+        patient_id: access.patient_id
+      }));
+      
+      setRecentActivity(mappedActivity);
       
       setLastRefresh(new Date());
     } catch (err: any) {
@@ -369,11 +366,11 @@ const DashboardPage: React.FC = () => {
                 </Typography>
                 <LinearProgress 
                   variant="determinate" 
-                  value={75} 
+                  value={systemHealth?.status === 'healthy' ? 25 : 75} 
                   sx={{ height: 8, borderRadius: 4 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  75% capacity
+                  {systemHealth?.status === 'healthy' ? 'Light load' : 'Processing...'}
                 </Typography>
               </Box>
               
@@ -383,12 +380,12 @@ const DashboardPage: React.FC = () => {
                 </Typography>
                 <LinearProgress 
                   variant="determinate" 
-                  value={60} 
+                  value={systemHealth?.database === 'Connected' ? 90 : 20} 
                   color="success"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Response time: 1.2s avg
+                  Status: {systemHealth?.database || 'Unknown'}
                 </Typography>
               </Box>
 
@@ -398,12 +395,12 @@ const DashboardPage: React.FC = () => {
                 </Typography>
                 <LinearProgress 
                   variant="determinate" 
-                  value={95} 
+                  value={systemHealth?.biometric_service === 'Active' ? 95 : 50} 
                   color="info"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  95% - Excellent
+                  Biometric Service: {systemHealth?.biometric_service || 'Unknown'}
                 </Typography>
               </Box>
             </Box>

@@ -11,7 +11,7 @@ import {
   Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api'; // Assuming you have an api service
+import { apiService } from '../../services/api';
 
 const RegistrationPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ const RegistrationPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await api.register({
+      await apiService.register({
         username: formData.username,
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -65,7 +65,7 @@ const RegistrationPage: React.FC = () => {
         }}
       >
         <Typography component="h1" variant="h5">
-          Sign up
+          Staff Registration
         </Typography>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
           {error && <Alert severity="error">{error}</Alert>}
