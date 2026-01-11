@@ -290,7 +290,7 @@ def register_patient(request):
                 image_data = base64.b64decode(face_image_b64)
                 
                 biometric_response = requests.post(
-                    'http://localhost:8002/biometric/extract-template',
+                    'http://localhost:8001/biometric/extract-template',
                     files={'file': ('image.jpg', image_data, 'image/jpeg')},
                     headers={'Authorization': f'Bearer dummy_jwt_token'},  # TODO: Use real JWT
                     timeout=10
@@ -435,7 +435,7 @@ def extract_biometric_template(request):
         files = {'file': (image_file.name, image_file.read(), image_file.content_type)}
         
         extract_response = requests.post(
-            'http://localhost:8002/biometric/extract-template',
+            'http://localhost:8001/biometric/extract-template',
             files=files,
             headers={'Authorization': f'Bearer dummy_jwt_token'},
             timeout=15
@@ -484,7 +484,7 @@ def liveness_check(request):
         files = {'file': (image_file.name, image_file.read(), image_file.content_type)}
         
         liveness_response = requests.post(
-            'http://localhost:8002/biometric/liveness-check',
+            'http://localhost:8001/biometric/liveness-check',
             files=files,
             headers={'Authorization': f'Bearer dummy_jwt_token'},
             timeout=15
@@ -535,7 +535,7 @@ def biometric_scan(request):
         image_data = base64.b64decode(face_image_b64)
         
         extract_response = requests.post(
-            'http://localhost:8002/biometric/extract-template',
+            'http://localhost:8001/biometric/extract-template',
             files={'file': ('scan.jpg', image_data, 'image/jpeg')},
             headers={'Authorization': f'Bearer dummy_jwt_token'},
             timeout=10
@@ -551,7 +551,7 @@ def biometric_scan(request):
         
         # Match against all enrolled templates
         match_response = requests.post(
-            'http://localhost:8002/biometric/match',
+            'http://localhost:8001/biometric/match',
             json={
                 'template_data': template_data,
                 'threshold': confidence_threshold,
@@ -697,7 +697,7 @@ def emergency_access(request):
         
         # Extract template
         extract_response = requests.post(
-            'http://localhost:8002/biometric/extract-template',
+            'http://localhost:8001/biometric/extract-template',
             files={'file': ('emergency.jpg', image_data, 'image/jpeg')},
             headers={'Authorization': f'Bearer dummy_jwt_token'},
             timeout=10
@@ -713,7 +713,7 @@ def emergency_access(request):
         
         # Match against enrolled templates
         match_response = requests.post(
-            'http://localhost:8002/biometric/match',
+            'http://localhost:8001/biometric/match',
             json={
                 'template_data': template_data,
                 'threshold': confidence_threshold,

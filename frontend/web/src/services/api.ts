@@ -21,7 +21,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8001',
+      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ class ApiService {
         if (process.env.NODE_ENV === 'development') {
           console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`);
         }
-        
+
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
           window.location.href = '/login';
@@ -92,8 +92,8 @@ class ApiService {
 
   // Retry mechanism for critical requests
   private async retryRequest<T>(
-    requestFn: () => Promise<T>, 
-    maxRetries: number = 3, 
+    requestFn: () => Promise<T>,
+    maxRetries: number = 3,
     delay: number = 1000
   ): Promise<T> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -101,7 +101,7 @@ class ApiService {
         return await requestFn();
       } catch (error) {
         if (attempt === maxRetries) throw error;
-        
+
         // Only retry on network errors or 5xx status codes
         const apiError = error as ApiError;
         if (apiError.code === 'NETWORK_ERROR' || (apiError.status && apiError.status >= 500)) {
@@ -137,9 +137,9 @@ class ApiService {
   async register(userData: any): Promise<User> {
     try {
       // Validate required fields
-      const requiredFields = ['username', 'email', 'password', 'firstName', 'lastName'];
+      const requiredFields = ['username', 'email', 'password', 'first_name', 'last_name'];
       const missingFields = requiredFields.filter(field => !userData[field]);
-      
+
       if (missingFields.length > 0) {
         throw {
           message: `Missing required fields: ${missingFields.join(', ')}`,
@@ -169,12 +169,12 @@ class ApiService {
       const response = await this.retryRequest(
         () => this.api.post('/auth/login', { email, password })
       );
-      
+
       // Store token automatically
       if (response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token);
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Login failed:', error);
@@ -218,7 +218,7 @@ class ApiService {
       const response = await this.retryRequest(
         () => this.api.get('/dashboard/stats')
       );
-      
+
       this.setCachedData(cacheKey, response.data);
       return response.data;
     } catch (error) {
@@ -241,7 +241,7 @@ class ApiService {
 
   // Biometric Operations
   async extractBiometricTemplate(
-    file: File, 
+    file: File,
     patientId?: string
   ): Promise<{
     success: boolean;
@@ -290,7 +290,7 @@ class ApiService {
         }),
         2 // Only retry once for file uploads
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Biometric template extraction failed:', error);

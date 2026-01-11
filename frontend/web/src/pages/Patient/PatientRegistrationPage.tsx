@@ -156,10 +156,10 @@ const PatientRegistrationPage: React.FC = () => {
         setRegistrationData(prev => ({
           ...prev,
           biometricTemplate: result.template_data,
-          qualityScore: result.quality_metrics.overall_quality,
+          qualityScore: result.quality_score,
         }));
         
-        setBiometricQuality(result.quality_metrics);
+        setBiometricQuality({ overall_quality: result.quality_score });
         
         enqueueSnackbar('Biometric template captured successfully!', { variant: 'success' });
         nextStep();
