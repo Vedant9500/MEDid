@@ -21,18 +21,25 @@ class _LoginScreenState extends State<LoginScreen> {
       _emailController.text,
       _passwordController.text,
     );
-    
-      if (mounted) {
-        // Get available cameras
-        final cameras = await availableCameras();
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => PatientRegistrationScreen(cameras: cameras),
-            ),
-          );
-        }
+
+    if (mounted) {
+      // Get available cameras
+      List<CameraDescription> cameras = [];
+      try {
+        cameras = await availableCameras();
+      } catch (e) {
+        // Camera not available or platform exception
+        debugPrint('Camera error: $e');
       }
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => PatientRegistrationScreen(cameras: cameras),
+          ),
+        );
+      }
+    }
   }
 
   @override
