@@ -66,7 +66,7 @@ interface RecentActivity {
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // State for real data
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
@@ -78,7 +78,7 @@ const DashboardPage: React.FC = () => {
   // Load real dashboard data
   useEffect(() => {
     loadDashboardData();
-    
+
     // Refresh data every 30 seconds
     const interval = setInterval(loadDashboardData, 30000);
     return () => clearInterval(interval);
@@ -87,16 +87,16 @@ const DashboardPage: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setError('');
-      
+
       // Load dashboard statistics  
       const [statsResponse, healthResponse, activityResponse] = await Promise.all([
         apiService.getDashboardStats(),
         apiService.getSystemHealth(),
         apiService.getRecentAccesses()
       ]);
-      
+
       // Use real dashboard stats from backend
-      
+
       const realStats: DashboardStats = {
         total_patients: statsResponse.total_patients || 0,
         biometric_enrolled: statsResponse.total_enrolled || 0,
@@ -107,30 +107,30 @@ const DashboardPage: React.FC = () => {
         system_status: healthResponse.status || 'unknown',
         last_updated: statsResponse.last_updated || new Date().toISOString()
       };
-      
+
       const healthData: SystemHealth = {
         status: (healthResponse as any).status || 'unknown',
-        uptime: (healthResponse as any).uptime || 'Unknown', 
+        uptime: (healthResponse as any).uptime || 'Unknown',
         database: (healthResponse as any).database_status || 'Unknown',
         biometric_service: (healthResponse as any).biometric_service || 'Unknown',
         last_check: new Date().toISOString()
       };
-      
+
       setDashboardStats(realStats);
       setSystemHealth(healthData);
       // Map recent accesses to activity format
       const mappedActivity: RecentActivity[] = activityResponse.map((access: any, index: number) => ({
         id: access.id || index,
-        type: access.action === 'Emergency Access' ? 'emergency' : 
-              access.action === 'Patient Lookup' ? 'registration' : 'system',
+        type: access.action === 'Emergency Access' ? 'emergency' :
+          access.action === 'Patient Lookup' ? 'registration' : 'system',
         description: `${access.action} for ${access.patient_name}`,
         timestamp: access.timestamp,
         user: access.accessed_by,
         patient_id: access.patient_id
       }));
-      
+
       setRecentActivity(mappedActivity);
-      
+
       setLastRefresh(new Date());
     } catch (err: any) {
       console.error('Failed to load dashboard data:', err);
@@ -204,14 +204,14 @@ const DashboardPage: React.FC = () => {
       description: 'Enroll new patient with biometric data',
       icon: PersonAdd,
       color: 'primary',
-      path: '/patient/register',
+      path: '/patients/register',
     },
     {
       title: 'Search Patients',
       description: 'Find and view patient records',
       icon: Search,
       color: 'info',
-      path: '/patient/search',
+      path: '/patients/search',
     },
     ...(user?.role === 'admin' ? [{
       title: 'Administration',
@@ -223,29 +223,29 @@ const DashboardPage: React.FC = () => {
   ];
 
   const systemMetrics = dashboardStats ? [
-    { 
-      label: 'Total Patients', 
-      value: dashboardStats.total_patients.toLocaleString(), 
-      trend: `+${dashboardStats.recent_registrations}`, 
-      color: 'primary' 
+    {
+      label: 'Total Patients',
+      value: dashboardStats.total_patients.toLocaleString(),
+      trend: `+${dashboardStats.recent_registrations}`,
+      color: 'primary'
     },
-    { 
-      label: 'Biometric Enrolled', 
-      value: dashboardStats.biometric_enrolled.toLocaleString(), 
-      trend: `${dashboardStats.enrollment_rate.toFixed(1)}%`, 
-      color: 'success' 
+    {
+      label: 'Biometric Enrolled',
+      value: dashboardStats.biometric_enrolled.toLocaleString(),
+      trend: `${dashboardStats.enrollment_rate.toFixed(1)}%`,
+      color: 'success'
     },
-    { 
-      label: 'Emergency Accesses', 
-      value: dashboardStats.recent_emergency_access.toLocaleString(), 
-      trend: 'Last 24h', 
-      color: 'warning' 
+    {
+      label: 'Emergency Accesses',
+      value: dashboardStats.recent_emergency_access.toLocaleString(),
+      trend: 'Last 24h',
+      color: 'warning'
     },
-    { 
-      label: 'Active Sessions', 
-      value: dashboardStats.active_emergency_sessions.toString(), 
-      trend: systemHealth?.status === 'healthy' ? 'Online' : 'Issues', 
-      color: systemHealth?.status === 'healthy' ? 'success' : 'error' 
+    {
+      label: 'Active Sessions',
+      value: dashboardStats.active_emergency_sessions.toString(),
+      trend: systemHealth?.status === 'healthy' ? 'Online' : 'Issues',
+      color: systemHealth?.status === 'healthy' ? 'success' : 'error'
     },
   ] : [
     { label: 'Total Patients', value: '---', trend: '---', color: 'primary' },
@@ -265,9 +265,9 @@ const DashboardPage: React.FC = () => {
           Welcome back, {user?.name}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {user?.role === 'admin' ? 'System Administrator' : 
-           user?.role === 'doctor' ? 'Healthcare Provider' : 
-           'Staff Member'} • MedID Biometric Health Passport
+          {user?.role === 'admin' ? 'System Administrator' :
+            user?.role === 'doctor' ? 'Healthcare Provider' :
+              'Staff Member'} • MedID Biometric Health Passport
         </Typography>
       </Box>
 
@@ -277,8 +277,8 @@ const DashboardPage: React.FC = () => {
           const IconComponent = action.icon;
           return (
             <Grid item xs={12} sm={6} md={3} key={action.title}>
-              <Card 
-                sx={{ 
+              <Card
+                sx={{
                   height: '100%',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -300,17 +300,17 @@ const DashboardPage: React.FC = () => {
               >
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <IconComponent 
-                      sx={{ 
-                        fontSize: 32, 
+                    <IconComponent
+                      sx={{
+                        fontSize: 32,
                         color: `${action.color}.main`,
                         mr: 2,
-                      }} 
+                      }}
                     />
                     {action.urgent && (
-                      <Chip 
-                        label="URGENT" 
-                        color="error" 
+                      <Chip
+                        label="URGENT"
+                        color="error"
                         size="small"
                         sx={{ fontWeight: 'bold' }}
                       />
@@ -364,23 +364,23 @@ const DashboardPage: React.FC = () => {
                 <Typography variant="body2" gutterBottom>
                   Biometric Processing Load
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={systemHealth?.status === 'healthy' ? 25 : 75} 
+                <LinearProgress
+                  variant="determinate"
+                  value={systemHealth?.status === 'healthy' ? 25 : 75}
                   sx={{ height: 8, borderRadius: 4 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   {systemHealth?.status === 'healthy' ? 'Light load' : 'Processing...'}
                 </Typography>
               </Box>
-              
+
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" gutterBottom>
                   Database Performance
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={systemHealth?.database === 'Connected' ? 90 : 20} 
+                <LinearProgress
+                  variant="determinate"
+                  value={systemHealth?.database === 'Connected' ? 90 : 20}
                   color="success"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
@@ -393,9 +393,9 @@ const DashboardPage: React.FC = () => {
                 <Typography variant="body2" gutterBottom>
                   Security Score
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={systemHealth?.biometric_service === 'Active' ? 95 : 50} 
+                <LinearProgress
+                  variant="determinate"
+                  value={systemHealth?.biometric_service === 'Active' ? 95 : 50}
                   color="info"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
@@ -419,10 +419,10 @@ const DashboardPage: React.FC = () => {
                 return (
                   <ListItem key={index} sx={{ px: 0 }}>
                     <ListItemIcon>
-                      <IconComponent 
-                        sx={{ 
+                      <IconComponent
+                        sx={{
                           color: getActivityColor(activity.type)
-                        }} 
+                        }}
                       />
                     </ListItemIcon>
                     <ListItemText

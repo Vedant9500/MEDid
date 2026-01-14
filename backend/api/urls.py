@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Root Landing Page
+    path('', views.api_root, name='api_root'),
+
     # Authentication endpoints
     path('auth/login', views.login, name='login'),
     path('auth/register', views.register_user, name='register_user'),
@@ -10,9 +13,8 @@ urlpatterns = [
     
     # Patient endpoints
     path('patients/search', views.search_patients, name='search_patients'),
-    path('patients/<str:patient_id>', views.get_patient, name='get_patient'),
-    path('patients/<str:patient_id>/update', views.update_patient, name='update_patient'),
     path('patients/register', views.register_patient, name='register_patient'),
+    path('patients/<str:patient_id>', views.get_patient, name='get_patient'),
     
     # Biometric endpoints
     path('biometric/extract-template', views.extract_biometric_template, name='extract_template'),

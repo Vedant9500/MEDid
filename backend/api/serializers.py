@@ -17,7 +17,8 @@ class PatientSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'date_of_birth', 'age', 'gender', 'blood_group',
             'emergency_contact_name', 'emergency_contact_phone', 'phone_number', 'email',
-            'allergies', 'current_medications', 'medical_conditions', 'emergency_summary',
+            'allergies_encrypted', 'current_medications_encrypted',
+            'medical_conditions_encrypted', 'emergency_summary_encrypted',
             'abha_id', 'consent_status', 'consent_granted_at', 'consent_version',
             'is_active', 'created_at', 'updated_at', 'last_accessed'
         ]
@@ -29,14 +30,20 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
     face_image_base64 = serializers.CharField(write_only=True, required=False)
     biometric_quality_score = serializers.FloatField(read_only=True)
     
+    # Raw medical data fields (not stored directly, will be encrypted)
+    allergies = serializers.ListField(child=serializers.CharField(), write_only=True, required=False)
+    current_medications = serializers.ListField(child=serializers.DictField(), write_only=True, required=False)
+    medical_conditions = serializers.ListField(child=serializers.DictField(), write_only=True, required=False)
+    emergency_summary = serializers.CharField(write_only=True, required=False)
+    
     class Meta:
         model = Patient
         fields = [
             'name', 'date_of_birth', 'gender', 'blood_group',
             'emergency_contact_name', 'emergency_contact_phone', 'phone_number', 'email',
-            'allergies', 'current_medications', 'medical_conditions',
             'abha_id', 'consent_status', 'consent_version',
-            'face_image_base64', 'biometric_quality_score'
+            'face_image_base64', 'biometric_quality_score',
+            'allergies', 'current_medications', 'medical_conditions', 'emergency_summary'
         ]
     
     def validate_consent_status(self, value):

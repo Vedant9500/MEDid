@@ -16,8 +16,88 @@ from .serializers import (
 )
 import json
 import logging
+import jwt
+import requests
+from cryptography.fernet import Fernet
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_root(request):
+    """
+    MedID API Root - Landing Page
+    """
+    return Response({
+        "service": "MedID Backend API",
+        "status": "online",
+        "version": "1.0.0",
+        "message": "Welcome to the MedID Identity System API",
+        "endpoints": {
+            "health_check": "/health",
+            "documentation": "/redoc",
+            "admin": "/admin/"
+        }
+    })
+
+def get_biometric_jwt():
+    """Generate JWT for biometric service"""
+    return jwt.encode(
+        {'user': 'medid_backend', 'role': 'service'},
+        settings.BIOMETRIC_SERVICE_SECRET,
+        algorithm='HS256'
+    )
+
+def encrypt_template(template_json):
+    """Encrypt biometric template using Fernet"""
+    f = Fernet(settings.BIOMETRIC_ENCRYPTION_KEY)
+    return f.encrypt(template_json.encode()).decode()
+
+def decrypt_template(encrypted_template):
+    """Decrypt template from Fernet token string"""
+    if not encrypted_template:
+        return None
+    try:
+        cipher_suite = Fernet(settings.BIOMETRIC_ENCRYPTION_KEY)
+        decrypted_data = cipher_suite.decrypt(encrypted_template.encode()).decode()
+        return json.loads(decrypted_data)
+    except Exception as e:
+        logger.error(f"Template decryption failed: {e}")
+        return None
+
+def get_decrypted_patient_data(patient):
+    """
+    Helper to return Patient data with decrypted medical fields
+    """
+    data = PatientSerializer(patient).data
+    cipher_suite = Fernet(settings.BIOMETRIC_ENCRYPTION_KEY)
+    
+    # Decrypt medical fields
+    fields_to_decrypt = {
+        'allergies_encrypted': 'allergies',
+        'current_medications_encrypted': 'current_medications',
+        'medical_conditions_encrypted': 'medical_conditions',
+        'emergency_summary_encrypted': 'emergency_summary'
+    }
+    
+    for enc_field, raw_field in fields_to_decrypt.items():
+        enc_val = getattr(patient, enc_field)
+        if enc_val:
+            try:
+                decrypted = cipher_suite.decrypt(enc_val.encode()).decode()
+                # If it looks like JSON, parse it
+                if raw_field in ['allergies', 'current_medications', 'medical_conditions']:
+                    data[raw_field] = json.loads(decrypted)
+                else:
+                    data[raw_field] = decrypted
+            except Exception as e:
+                logger.error(f"Failed to decrypt {raw_field}: {e}")
+                data[raw_field] = None
+        else:
+            data[raw_field] = [] if raw_field != 'emergency_summary' else ""
+            
+    return data
 
 
 @api_view(['POST'])
@@ -201,36 +281,37 @@ def get_profile(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_patients(request):
-    """Search patients endpoint"""
+    """Search patients endpoint with decrypted data support"""
     query = request.GET.get('q', '')
     
-    # Create sample patients if none exist
+    # Create sample patients if none exist (demo mode)
     if Patient.objects.count() == 0:
+        # Note: In a real scenario, we'd encrypt these sample fields too
         sample_patients = [
-            Patient(id='P001', name='John Smith', age=45, blood_type='A+', emergency_contact='Jane Smith (Wife)', status='active'),
-            Patient(id='P002', name='Sarah Johnson', age=32, blood_type='O-', emergency_contact='Mike Johnson (Husband)', status='active'),
-            Patient(id='P003', name='Robert Brown', age=28, blood_type='B+', emergency_contact='Lisa Brown (Sister)', status='active'),
+            Patient(name='John Smith', date_of_birth='1978-05-15', gender='M', blood_group='A+'),
+            Patient(name='Sarah Johnson', date_of_birth='1991-08-22', gender='F', blood_group='O-'),
         ]
         Patient.objects.bulk_create(sample_patients)
     
     patients = Patient.objects.filter(name__icontains=query) if query else Patient.objects.all()
-    serializer = PatientSerializer(patients, many=True)
-    return Response(serializer.data)
+    
+    # Return decrypted data for search results
+    search_results = [get_decrypted_patient_data(p) for p in patients]
+    return Response(search_results)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_patient(request, patient_id):
-    """Get specific patient details"""
+    """Get specific patient details with decrypted medical information"""
     patient = get_object_or_404(Patient, id=patient_id)
-    serializer = PatientSerializer(patient)
-    return Response(serializer.data)
+    return Response(get_decrypted_patient_data(patient))
 
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_patient(request, patient_id):
-    """Update existing patient information"""
+    """Update existing patient information with encryption support"""
     patient = get_object_or_404(Patient, id=patient_id)
     
     serializer = PatientRegistrationSerializer(patient, data=request.data, partial=True)
@@ -238,20 +319,63 @@ def update_patient(request, patient_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        serializer.save()
+        # Save basic fields
+        update_data = serializer.validated_data.copy()
+        
+        # Handle medical fields separately for encryption
+        medical_fields = ['allergies', 'current_medications', 'medical_conditions', 'emergency_summary']
+        raw_medical_data = {}
+        has_medical_update = False
+        
+        # Get current values for summary regeneration if needed
+        if any(field in update_data for field in ['allergies', 'current_medications', 'medical_conditions']):
+            current_decrypted = get_decrypted_patient_data(patient)
+            raw_medical_data = {
+                'allergies': update_data.get('allergies', current_decrypted.get('allergies', [])),
+                'current_medications': update_data.get('current_medications', current_decrypted.get('current_medications', [])),
+                'medical_conditions': update_data.get('medical_conditions', current_decrypted.get('medical_conditions', [])),
+                'emergency_summary': update_data.get('emergency_summary', current_decrypted.get('emergency_summary', '')),
+                'blood_group': update_data.get('blood_group', patient.blood_group),
+                'emergency_contact_name': update_data.get('emergency_contact_name', patient.emergency_contact_name),
+                'emergency_contact_phone': update_data.get('emergency_contact_phone', patient.emergency_contact_phone)
+            }
+            
+            # Encrypt individual fields
+            for field in ['allergies', 'current_medications', 'medical_conditions']:
+                if field in update_data:
+                    val = update_data.pop(field)
+                    patient_field = f"{field}_encrypted"
+                    setattr(patient, patient_field, encrypt_template(json.dumps(val)))
+            
+            # Regenerate and encrypt summary
+            new_summary = generate_emergency_summary_raw(raw_medical_data)
+            patient.emergency_summary_encrypted = encrypt_template(new_summary)
+            has_medical_update = True
+        elif 'emergency_summary' in update_data:
+            val = update_data.pop('emergency_summary')
+            patient.emergency_summary_encrypted = encrypt_template(val)
+            has_medical_update = True
+        
+        # Update remaining fields
+        for key, value in update_data.items():
+            setattr(patient, key, value)
+            
+        patient.save()
         
         # Log the update
         AuditLog.objects.create(
-            operationType='Patient Update',
-            userId=request.user.id,
-            ipAddress=request.META.get('REMOTE_ADDR', ''),
-            details=f'Updated patient: {patient.full_name}'
+            event_type='data_update',
+            patient=patient,
+            user_id=request.user.username,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            event_description=f'Updated patient record: {patient.name}',
+            event_data={'medical_update': has_medical_update}
         )
         
         return Response({
             'success': True,
             'message': 'Patient updated successfully',
-            'patient': PatientSerializer(patient).data
+            'patient': get_decrypted_patient_data(patient)
         })
         
     except Exception as e:
@@ -290,15 +414,17 @@ def register_patient(request):
                 image_data = base64.b64decode(face_image_b64)
                 
                 biometric_response = requests.post(
-                    'http://localhost:8001/biometric/extract-template',
+                    f"{settings.BIOMETRIC_SERVICE_URL}/biometric/extract-template",
                     files={'file': ('image.jpg', image_data, 'image/jpeg')},
-                    headers={'Authorization': f'Bearer dummy_jwt_token'},  # TODO: Use real JWT
+                    headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
                     timeout=10
                 )
                 
                 if biometric_response.status_code == 200:
                     bio_data = biometric_response.json()
-                    biometric_template = bio_data.get('template_data')
+                    raw_template = bio_data.get('template_data')
+                    # Encrypt the template before storage
+                    biometric_template = encrypt_template(json.dumps(raw_template))
                     quality_score = bio_data.get('quality_score', 0.0)
                     
                     # Validate quality threshold
@@ -323,8 +449,28 @@ def register_patient(request):
         # Create patient record
         patient_data = serializer.validated_data.copy()
         
-        # Remove face image from patient data
+        # Remove face image and raw medical fields from patient data
         patient_data.pop('face_image_base64', None)
+        
+        # Extract raw medical data for summary generation
+        raw_medical_data = {
+            'allergies': patient_data.pop('allergies', []),
+            'current_medications': patient_data.pop('current_medications', []),
+            'medical_conditions': patient_data.pop('medical_conditions', []),
+            'emergency_summary': patient_data.pop('emergency_summary', ''),
+            'blood_group': patient_data.get('blood_group', 'N/A'),
+            'emergency_contact_name': patient_data.get('emergency_contact_name', 'N/A'),
+            'emergency_contact_phone': patient_data.get('emergency_contact_phone', 'N/A')
+        }
+        
+        # Encrypt medical fields
+        patient_data['allergies_encrypted'] = encrypt_template(json.dumps(raw_medical_data['allergies']))
+        patient_data['current_medications_encrypted'] = encrypt_template(json.dumps(raw_medical_data['current_medications']))
+        patient_data['medical_conditions_encrypted'] = encrypt_template(json.dumps(raw_medical_data['medical_conditions']))
+        
+        # Generate emergency summary from raw data
+        emergency_summary_text = generate_emergency_summary_raw(raw_medical_data)
+        patient_data['emergency_summary_encrypted'] = encrypt_template(emergency_summary_text)
         
         # Set consent timestamp if granted
         if patient_data.get('consent_status') == 'granted':
@@ -337,7 +483,7 @@ def register_patient(request):
         if biometric_template and quality_score > 0:
             BiometricTemplate.objects.create(
                 patient=patient,
-                face_template_encrypted=biometric_template,  # TODO: Add encryption
+                face_template_encrypted=biometric_template,
                 quality_score=quality_score,
                 template_version='1.0',
                 extraction_algorithm='face_recognition'
@@ -346,7 +492,7 @@ def register_patient(request):
         # Create audit log entry
         AuditLog.objects.create(
             event_type='patient_register',
-            event_description=f'Patient {patient.name} registered successfully',
+            event_description=f'Patient {patient.name} registered successfully (encrypted)',
             patient=patient,
             user_id=request.user.username,
             ip_address=request.META.get('REMOTE_ADDR'),
@@ -354,16 +500,18 @@ def register_patient(request):
             event_data={
                 'biometric_enrolled': bool(biometric_template),
                 'quality_score': quality_score,
-                'consent_version': patient.consent_version
+                'consent_version': patient.consent_version,
+                'encrypted_fields': ['allergies', 'medications', 'conditions', 'summary']
             }
         )
         
-        # Generate emergency summary
-        emergency_summary = generate_emergency_summary(patient)
-        patient.emergency_summary = emergency_summary
-        patient.save()
-        
+        # Return response (decrypting for mobile app feedback)
         response_data = PatientSerializer(patient).data
+        response_data['allergies'] = raw_medical_data['allergies']
+        response_data['current_medications'] = raw_medical_data['current_medications']
+        response_data['medical_conditions'] = raw_medical_data['medical_conditions']
+        response_data['emergency_summary'] = emergency_summary_text
+        
         response_data['biometric_quality_score'] = quality_score
         response_data['biometric_enrolled'] = bool(biometric_template)
         response_data['registration_status'] = 'success'
@@ -376,39 +524,41 @@ def register_patient(request):
             'message': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-def generate_emergency_summary(patient):
+def generate_emergency_summary_raw(data):
     """
-    Generate emergency summary for quick access during medical emergencies
+    Generate emergency summary from raw dictionary data
     """
     summary_parts = []
     
     # Critical information first
-    summary_parts.append(f"BLOOD GROUP: {patient.blood_group}")
+    summary_parts.append(f"BLOOD GROUP: {data.get('blood_group', 'N/A')}")
     
     # Allergies
-    if patient.allergies:
-        allergy_list = ", ".join(patient.allergies) if isinstance(patient.allergies, list) else patient.allergies
+    allergies = data.get('allergies', [])
+    if allergies:
+        allergy_list = ", ".join(allergies) if isinstance(allergies, list) else str(allergies)
         summary_parts.append(f"ALLERGIES: {allergy_list}")
     
     # Current medications
-    if patient.current_medications:
-        if isinstance(patient.current_medications, list):
-            med_list = ", ".join([med.get('name', str(med)) if isinstance(med, dict) else str(med) for med in patient.current_medications])
+    meds = data.get('current_medications', [])
+    if meds:
+        if isinstance(meds, list):
+            med_list = ", ".join([med.get('name', str(med)) if isinstance(med, dict) else str(med) for med in meds])
         else:
-            med_list = str(patient.current_medications)
+            med_list = str(meds)
         summary_parts.append(f"MEDICATIONS: {med_list}")
     
     # Medical conditions
-    if patient.medical_conditions:
-        if isinstance(patient.medical_conditions, list):
-            condition_list = ", ".join([cond.get('condition', str(cond)) if isinstance(cond, dict) else str(cond) for cond in patient.medical_conditions])
+    conditions = data.get('medical_conditions', [])
+    if conditions:
+        if isinstance(conditions, list):
+            condition_list = ", ".join([cond.get('condition', str(cond)) if isinstance(cond, dict) else str(cond) for cond in conditions])
         else:
-            condition_list = str(patient.medical_conditions)
+            condition_list = str(conditions)
         summary_parts.append(f"CONDITIONS: {condition_list}")
     
     # Emergency contact
-    summary_parts.append(f"EMERGENCY CONTACT: {patient.emergency_contact_name} - {patient.emergency_contact_phone}")
+    summary_parts.append(f"EMERGENCY CONTACT: {data.get('emergency_contact_name')} - {data.get('emergency_contact_phone')}")
     
     return " | ".join(summary_parts)
 
@@ -435,9 +585,9 @@ def extract_biometric_template(request):
         files = {'file': (image_file.name, image_file.read(), image_file.content_type)}
         
         extract_response = requests.post(
-            'http://localhost:8001/biometric/extract-template',
+            f"{settings.BIOMETRIC_SERVICE_URL}/biometric/extract-template",
             files=files,
-            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=15
         )
         
@@ -484,9 +634,9 @@ def liveness_check(request):
         files = {'file': (image_file.name, image_file.read(), image_file.content_type)}
         
         liveness_response = requests.post(
-            'http://localhost:8001/biometric/liveness-check',
+            f"{settings.BIOMETRIC_SERVICE_URL}/biometric/liveness-check",
             files=files,
-            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=15
         )
         
@@ -535,9 +685,9 @@ def biometric_scan(request):
         image_data = base64.b64decode(face_image_b64)
         
         extract_response = requests.post(
-            'http://localhost:8001/biometric/extract-template',
+            f"{settings.BIOMETRIC_SERVICE_URL}/biometric/extract-template",
             files={'file': ('scan.jpg', image_data, 'image/jpeg')},
-            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=10
         )
         
@@ -551,13 +701,13 @@ def biometric_scan(request):
         
         # Match against all enrolled templates
         match_response = requests.post(
-            'http://localhost:8001/biometric/match',
+            f"{settings.BIOMETRIC_SERVICE_URL}/biometric/match",
             json={
                 'template_data': template_data,
                 'threshold': confidence_threshold,
                 'max_results': 1
             },
-            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=10
         )
         
@@ -600,7 +750,7 @@ def biometric_scan(request):
                     'success': True,
                     'patient_found': True,
                     'patient_id': str(patient.id),
-                    'patient_data': PatientSerializer(patient).data,
+                    'patient_data': get_decrypted_patient_data(patient),
                     'confidence': confidence,
                     'message': f'Patient {patient.name} identified successfully'
                 })
@@ -697,9 +847,9 @@ def emergency_access(request):
         
         # Extract template
         extract_response = requests.post(
-            'http://localhost:8001/biometric/extract-template',
+            f"{settings.BIOMETRIC_SERVICE_URL}/biometric/extract-template",
             files={'file': ('emergency.jpg', image_data, 'image/jpeg')},
-            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=10
         )
         
@@ -713,13 +863,13 @@ def emergency_access(request):
         
         # Match against enrolled templates
         match_response = requests.post(
-            'http://localhost:8001/biometric/match',
+            f"{settings.BIOMETRIC_SERVICE_URL}/biometric/match",
             json={
                 'template_data': template_data,
                 'threshold': confidence_threshold,
                 'max_results': 1
             },
-            headers={'Authorization': f'Bearer dummy_jwt_token'},
+            headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=10
         )
         
@@ -804,18 +954,16 @@ def emergency_access(request):
             )
             
             # Prepare emergency data response
-            emergency_data = patient.get_emergency_data()
-            
             # TODO: Send patient notification (SMS/Email)
             # send_emergency_notification(patient, emergency_session)
             
             response_data = {
                 'match_found': True,
                 'patient_id': str(patient.id),
-                'emergency_data': emergency_data,
+                'emergency_data': get_decrypted_patient_data(patient),
                 'match_confidence': confidence,
                 'access_session_id': str(emergency_session.id),
-                'expires_at': expires_at.isoformat(),
+                'expires_at': emergency_session.expires_at.isoformat(),
                 'message': f'Emergency access granted for {patient.name}',
                 'session_duration_minutes': 120,
                 'notification_sent': False  # TODO: Implement notifications

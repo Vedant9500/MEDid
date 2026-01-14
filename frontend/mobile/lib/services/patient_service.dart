@@ -48,4 +48,51 @@ class PatientService {
       return {'success': false, 'message': 'Connection error: $e'};
     }
   }
+
+  Future<Map<String, dynamic>> biometricScan(String faceImageBase64) async {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+
+      final response = await http.post(
+        Uri.parse(ApiConfig.biometricScan),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token',
+        },
+        body: jsonEncode({
+          'face_image_base64': faceImageBase64,
+          'confidence_threshold': 0.6,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...jsonDecode(response.body)};
+      } else {
+        return {'success': false, 'message': 'Scan failed: ${response.body}'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<List<dynamic>> searchPatients(String query) async {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      final response = await http.get(
+        Uri.parse('${ApiConfig.patientSearch}?q=$query'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
 }

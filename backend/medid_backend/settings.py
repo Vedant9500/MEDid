@@ -149,3 +149,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+# Biometric Service Settings
+BIOMETRIC_SERVICE_URL = 'http://localhost:8001'
+BIOMETRIC_SERVICE_SECRET = 'aXFt_gI-p9MkvSCkN3EauqqNcyRdbluoFe3ux_eGEVys='  # Should be in env in prod
+BIOMETRIC_ENCRYPTION_KEY = '-GAlSEqH8DzI3OaOaBQ-IvJrZFguWye-_dt4nDDLB_g='  # Should be in env in prod

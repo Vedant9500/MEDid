@@ -69,7 +69,8 @@ const patientSchema = yup.object().shape({
   consentGranted: yup.boolean().oneOf([true], 'Consent must be granted to proceed'),
 });
 
-interface RegistrationData extends Partial<Patient> {
+interface RegistrationData extends Omit<Partial<Patient>, 'gender'> {
+  gender?: string;
   consentGranted?: boolean;
   biometricTemplate?: string;
   qualityScore?: number;
@@ -106,7 +107,16 @@ const PatientRegistrationPage: React.FC = () => {
     watch,
   } = useForm<RegistrationData>({
     resolver: yupResolver(patientSchema),
-    defaultValues: registrationData,
+    defaultValues: {
+      name: '',
+      date_of_birth: '',
+      gender: '',
+      blood_group: '',
+      emergency_contact_name: '',
+      emergency_contact_phone: '',
+      consentGranted: false,
+      ...registrationData,
+    },
   });
 
   // Check camera on mount
@@ -151,16 +161,16 @@ const PatientRegistrationPage: React.FC = () => {
 
       // Extract biometric template
       const result = await apiService.extractBiometricTemplate(file);
-      
+
       if (result.success) {
         setRegistrationData(prev => ({
           ...prev,
           biometricTemplate: result.template_data,
           qualityScore: result.quality_score,
         }));
-        
+
         setBiometricQuality({ overall_quality: result.quality_score });
-        
+
         enqueueSnackbar('Biometric template captured successfully!', { variant: 'success' });
         nextStep();
       } else {
@@ -241,7 +251,7 @@ const PatientRegistrationPage: React.FC = () => {
         medications,
         allergies,
         biometricEnrolled: !!registrationData.biometricTemplate,
-      };
+      } as unknown as Partial<Patient>;
 
       // Remove non-patient fields
       delete (finalData as any).consentGranted;
@@ -249,7 +259,7 @@ const PatientRegistrationPage: React.FC = () => {
       delete (finalData as any).qualityScore;
 
       const newPatient = await apiService.createPatient(finalData);
-      
+
       enqueueSnackbar(
         `Patient ${newPatient.name} registered successfully!`,
         { variant: 'success' }
@@ -279,7 +289,7 @@ const PatientRegistrationPage: React.FC = () => {
         <Typography variant="h6" gutterBottom>
           Personal Information
         </Typography>
-        
+
         <form onSubmit={handleSubmit(handlePersonalInfoSubmit)}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -323,7 +333,7 @@ const PatientRegistrationPage: React.FC = () => {
                   name="gender"
                   control={control}
                   render={({ field }) => (
-                    <Select {...field} label="Gender" error={!!errors.gender}>
+                    <Select {...field} value={field.value || ''} label="Gender" error={!!errors.gender}>
                       <MenuItem value="M">Male</MenuItem>
                       <MenuItem value="F">Female</MenuItem>
                       <MenuItem value="O">Other</MenuItem>
@@ -341,7 +351,7 @@ const PatientRegistrationPage: React.FC = () => {
                   name="blood_group"
                   control={control}
                   render={({ field }) => (
-                    <Select {...field} label="Blood Group" error={!!errors.blood_group}>
+                    <Select {...field} value={field.value || ''} label="Blood Group" error={!!errors.blood_group}>
                       <MenuItem value="A+">A+</MenuItem>
                       <MenuItem value="A-">A-</MenuItem>
                       <MenuItem value="B+">B+</MenuItem>
@@ -405,7 +415,7 @@ const PatientRegistrationPage: React.FC = () => {
                     }
                     label={
                       <Typography variant="body2">
-                        I consent to the collection and storage of my biometric data for emergency medical identification purposes. 
+                        I consent to the collection and storage of my biometric data for emergency medical identification purposes.
                         I understand that this data will be encrypted and used only for legitimate medical emergencies.
                       </Typography>
                     }
@@ -584,7 +594,7 @@ const PatientRegistrationPage: React.FC = () => {
         <Typography variant="h6" gutterBottom>
           Biometric Enrollment
         </Typography>
-        
+
         <Alert severity="info" sx={{ mb: 3 }}>
           Your facial biometric will be encrypted and stored securely for emergency medical identification.
         </Alert>

@@ -1,4 +1,4 @@
-# MedID Biometric Service Requirements
+# MedID Biometric Service Requirements - DeepFace Production Integration
 
 # Core FastAPI and ASGI
 fastapi==0.104.1
@@ -13,11 +13,13 @@ python-multipart==0.0.6
 asyncpg==0.29.0
 sqlalchemy[asyncio]==2.0.23
 
-# Biometric Processing
-face-recognition==1.3.0
+# PRODUCTION BIOMETRIC PROCESSING - DeepFace
+deepface==0.0.86
 opencv-python==4.8.1.78
 Pillow==10.1.0
 numpy==1.24.4
+tensorflow>=2.4.0  # For DeepFace neural networks
+tf-keras>=2.13.0   # Required for TensorFlow 2.16+
 
 # Encryption
 cryptography==41.0.8
@@ -30,7 +32,6 @@ pydantic==2.5.0
 
 # Image Processing Enhancements
 scikit-image==0.22.0
-dlib==19.24.2
 
 # Caching (optional)
 redis==5.0.1

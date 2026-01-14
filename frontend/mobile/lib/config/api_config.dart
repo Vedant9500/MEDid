@@ -13,6 +13,8 @@ class ApiConfig {
     return 'http://localhost:8000';
   }
 
-  static String get authLogin => '$baseUrl/auth/login';
-  static String get patientRegister => '$baseUrl/patients/register';
+  static String get authLogin => '$baseUrl/api/auth/login';
+  static String get patientRegister => '$baseUrl/api/patients/register';
+  static String get patientSearch => '$baseUrl/api/patients/search';
+  static String get biometricScan => '$baseUrl/api/biometric/scan';
 }

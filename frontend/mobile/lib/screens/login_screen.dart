@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:camera/camera.dart';
 import '../providers/auth_provider.dart';
-import 'patient_registration_screen.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _passwordController.text,
     );
 
-    if (mounted) {
+    if (success && mounted) {
       // Get available cameras
       List<CameraDescription> cameras = [];
       try {
@@ -34,9 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => PatientRegistrationScreen(cameras: cameras),
-          ),
+          MaterialPageRoute(builder: (_) => HomeScreen(cameras: cameras)),
         );
       }
     }

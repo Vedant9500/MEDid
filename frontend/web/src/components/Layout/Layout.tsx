@@ -54,9 +54,9 @@ const Layout: React.FC<LayoutProps> = () => {
         return 'Dashboard';
       case '/emergency':
         return 'Emergency Access';
-      case '/patient/register':
+      case '/patients/register':
         return 'Patient Registration';
-      case '/patient/search':
+      case '/patients/search':
         return 'Patient Search';
       case '/admin':
         return 'Administration';
@@ -71,9 +71,9 @@ const Layout: React.FC<LayoutProps> = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar 
-        position="static" 
-        sx={{ 
+      <AppBar
+        position="static"
+        sx={{
           backgroundColor: isEmergencyPage ? '#f44336' : theme.palette.primary.main,
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         }}
@@ -88,7 +88,7 @@ const Layout: React.FC<LayoutProps> = () => {
           >
             <MenuIcon />
           </IconButton>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
             <Box
               sx={{
@@ -104,7 +104,7 @@ const Layout: React.FC<LayoutProps> = () => {
                 MedID
               </Typography>
             </Box>
-            
+
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
               {getPageTitle()}
             </Typography>
@@ -130,12 +130,12 @@ const Layout: React.FC<LayoutProps> = () => {
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {user && (
               <Typography variant="body2" sx={{ mr: 2, opacity: 0.9 }}>
-                {user.role === 'admin' ? 'Administrator' : 
-                 user.role === 'doctor' ? 'Healthcare Provider' : 
-                 'Staff'}: {user.name}
+                {user.role === 'admin' ? 'Administrator' :
+                  user.role === 'doctor' ? 'Healthcare Provider' :
+                    'Staff'}: {user.name}
               </Typography>
             )}
-            
+
             <IconButton
               size="large"
               aria-label="account of current user"
@@ -150,7 +150,7 @@ const Layout: React.FC<LayoutProps> = () => {
                 <AccountCircle />
               )}
             </IconButton>
-            
+
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}

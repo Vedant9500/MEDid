@@ -42,11 +42,11 @@ class Patient(models.Model):
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     
-    # Medical Information (encrypted fields for future)
-    allergies = models.JSONField(default=list, blank=True)  # List of allergy strings
-    current_medications = models.JSONField(default=list, blank=True)  # List of medication objects
-    medical_conditions = models.JSONField(default=list, blank=True)  # List of condition objects
-    emergency_summary = models.TextField(blank=True)  # Critical emergency info
+    # Medical Information (stored as encrypted base64 strings)
+    allergies_encrypted = models.TextField(blank=True, null=True)
+    current_medications_encrypted = models.TextField(blank=True, null=True)
+    medical_conditions_encrypted = models.TextField(blank=True, null=True)
+    emergency_summary_encrypted = models.TextField(blank=True, null=True)
     
     # ABHA Integration
     abha_id = models.CharField(max_length=20, null=True, blank=True, unique=True)
@@ -73,16 +73,16 @@ class Patient(models.Model):
         return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
     
     def get_emergency_data(self):
-        """Get critical emergency information"""
+        """Get critical emergency information (returns encrypted strings)"""
         return {
             'patient_id': str(self.id),
             'name': self.name,
             'age': self.age,
             'blood_group': self.blood_group,
-            'allergies': self.allergies,
-            'current_medications': self.current_medications,
-            'medical_conditions': self.medical_conditions,
-            'emergency_summary': self.emergency_summary,
+            'allergies_encrypted': self.allergies_encrypted,
+            'current_medications_encrypted': self.current_medications_encrypted,
+            'medical_conditions_encrypted': self.medical_conditions_encrypted,
+            'emergency_summary_encrypted': self.emergency_summary_encrypted,
             'emergency_contact': {
                 'name': self.emergency_contact_name,
                 'phone': self.emergency_contact_phone

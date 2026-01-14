@@ -147,20 +147,26 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
       if (mounted) {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Patient Registered Successfully!')),
+            const SnackBar(
+              content: Text('Patient Registered Successfully!'),
+              backgroundColor: Colors.green,
+            ),
           );
-          _clearForm();
+          Navigator.of(context).pop(); // Go back to Home Screen
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(result['message'])));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     } finally {
       if (mounted) {
@@ -169,20 +175,6 @@ class _PatientRegistrationScreenState extends State<PatientRegistrationScreen> {
         });
       }
     }
-  }
-
-  void _clearForm() {
-    _firstNameController.clear();
-    _lastNameController.clear();
-    _dobController.clear();
-    _emergencyNameController.clear();
-    _emergencyPhoneController.clear();
-    _historyController.clear();
-    setState(() {
-      _selectedGender = null;
-      _selectedBloodGroup = null;
-      _capturedImage = null;
-    });
   }
 
   @override

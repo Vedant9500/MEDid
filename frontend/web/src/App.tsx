@@ -19,6 +19,7 @@ const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage')
 const EmergencyPage = React.lazy(() => import('./pages/Emergency/EmergencyPage'));
 const PatientRegistrationPage = React.lazy(() => import('./pages/Patient/PatientRegistrationPage'));
 const PatientSearchPage = React.lazy(() => import('./pages/Patient/PatientSearchPage'));
+const PatientDetailsPage = React.lazy(() => import('./pages/Patient/PatientDetailsPage'));
 const AdminPage = React.lazy(() => import('./pages/Admin/AdminPage'));
 const UserManagementPage = React.lazy(() => import('./pages/Admin/UserManagementPage'));
 const ReportsPage = React.lazy(() => import('./pages/Admin/ReportsPage'));
@@ -157,7 +158,7 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <SnackbarProvider 
+        <SnackbarProvider
           maxSnack={3}
           anchorOrigin={{
             vertical: 'top',
@@ -188,6 +189,7 @@ const App: React.FC = () => {
                     <Route path="patients">
                       <Route path="register" element={<PatientRegistrationPage />} />
                       <Route path="search" element={<PatientSearchPage />} />
+                      <Route path=":id" element={<PatientDetailsPage />} />
                     </Route>
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="admin/users" element={<UserManagementPage />} />
@@ -196,7 +198,7 @@ const App: React.FC = () => {
                     <Route path="admin/settings" element={<SettingsPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                   </Route>
-                  
+
                   {/* Error Routes */}
                   <Route path="/404" element={<NotFoundPage />} />
                   <Route path="*" element={<Navigate to="/404" replace />} />
