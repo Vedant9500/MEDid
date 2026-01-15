@@ -74,6 +74,7 @@ interface RegistrationData extends Omit<Partial<Patient>, 'gender'> {
   consentGranted?: boolean;
   biometricTemplate?: string;
   qualityScore?: number;
+  faceImageBase64?: string;
 }
 
 const steps = [
@@ -159,7 +160,10 @@ const PatientRegistrationPage: React.FC = () => {
       const blob = await response.blob();
       const file = new File([blob], 'enrollment.jpg', { type: 'image/jpeg' });
 
-      // Extract biometric template
+      // Get base64 string for backend enrollment (remove prefix)
+      const base64Data = imageSrc.split(',')[1];
+
+      // Extract biometric template (client-side validation only)
       const result = await apiService.extractBiometricTemplate(file);
 
       if (result.success) {
@@ -167,11 +171,12 @@ const PatientRegistrationPage: React.FC = () => {
           ...prev,
           biometricTemplate: result.template_data,
           qualityScore: result.quality_score,
+          faceImageBase64: base64Data, // Store base64 for submission
         }));
 
         setBiometricQuality({ overall_quality: result.quality_score });
 
-        enqueueSnackbar('Biometric template captured successfully!', { variant: 'success' });
+        enqueueSnackbar('Biometric data captured successfully!', { variant: 'success' });
         nextStep();
       } else {
         throw new (Error as any)('Failed to extract biometric template');
@@ -245,23 +250,34 @@ const PatientRegistrationPage: React.FC = () => {
   const handleFinalSubmit = async () => {
     setSubmitting(true);
     try {
-      const finalData: Partial<Patient> = {
+      // Prepare payload including the face image for enrollment
+      const finalData: any = {
         ...registrationData,
         medicalHistory,
         medications,
         allergies,
         biometricEnrolled: !!registrationData.biometricTemplate,
-      } as unknown as Partial<Patient>;
+        face_image_base64: registrationData.faceImageBase64, // Critical for backend enrollment
+      };
 
-      // Remove non-patient fields
-      delete (finalData as any).consentGranted;
-      delete (finalData as any).biometricTemplate;
-      delete (finalData as any).qualityScore;
+      // Remove non-patient internal fields
+      delete finalData.consentGranted;
+      delete finalData.biometricTemplate;
+      delete finalData.qualityScore;
+      delete finalData.faceImageBase64; // Send as face_image_base64 instead
 
-      const newPatient = await apiService.createPatient(finalData);
+      // But we need to ensure face_image_base64 is actually sent in the request body
+      // apiService.createPatient expects Partial<Patient>, so we might need to cast or updated interface
+      // Since it's 'any' above, we are adding face_image_base64 to the object
+      const payload = {
+        ...finalData,
+        face_image_base64: registrationData.faceImageBase64
+      };
+
+      const newPatient = await apiService.createPatient(payload);
 
       enqueueSnackbar(
-        `Patient ${newPatient.name} registered successfully!`,
+        `Patient ${newPatient.name} registered and enrolled successfully!`,
         { variant: 'success' }
       );
 
