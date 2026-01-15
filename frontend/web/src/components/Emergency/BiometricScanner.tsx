@@ -134,8 +134,8 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       // Step 2: Skip Liveness Detection (service doesn't provide this endpoint)
       setScanProgress(40);
       // Note: Real liveness detection would be implemented here
-      setLivenessResult({ 
-        isLive: true, 
+      setLivenessResult({
+        isLive: true,
         confidence: 0.0, // No real liveness check performed
         checksPassed: ['biometric_scan_ready'],
         checksFailed: [],
@@ -145,30 +145,30 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
 
       // Step 3: Emergency Access Request (if in emergency mode)
       setScanProgress(60);
-      
+
       if (isEmergencyMode) {
         // Use emergency access endpoint for break-glass access
         console.log('Image src format:', imageSrc.substring(0, 50) + '...'); // Debug log
-        
+
         // Validate that imageSrc is a data URL
         if (!imageSrc || !imageSrc.startsWith('data:image/')) {
           throw new (globalThis.Error)('Invalid image format captured');
         }
-        
+
         const imageBase64 = imageSrc.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-        
+
         // Validate base64 data before sending
         if (!imageBase64 || imageBase64.length === 0) {
           throw new (globalThis.Error)('Invalid image data captured');
         }
-        
+
         // Additional base64 validation
         try {
           atob(imageBase64); // Test if it's valid base64
         } catch (e) {
           throw new (globalThis.Error)('Invalid base64 image data');
         }
-        
+
         const emergencyData = {
           face_image_base64: imageBase64,
           emergency_reason: 'Medical emergency - patient identification required',
@@ -222,7 +222,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
           };
 
           onPatientFound(patient);
-          
+
           enqueueSnackbar(
             `EMERGENCY ACCESS: ${patient.name} identified (${(emergencyResult.match_confidence * 100).toFixed(1)}% confidence)`,
             { variant: 'success' }
@@ -234,7 +234,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
       } else {
         // Standard biometric scan (non-emergency) - use raw image
         setScanProgress(60);
-        
+
         const imageBase64 = imageSrc.split(',')[1]; // Remove data:image/jpeg;base64, prefix
         setScanProgress(80);
         const matchResult = await apiService.matchBiometric(
@@ -251,7 +251,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
           try {
             const patient = await apiService.getPatient(matchResult.patientId);
             onPatientFound(patient);
-            
+
             enqueueSnackbar(
               `Patient identified: ${patient.name} (${(matchResult.confidence * 100).toFixed(1)}% confidence)`,
               { variant: 'success' }
@@ -298,9 +298,81 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
     return (
       <Card>
         <CardContent>
-          <Alert severity="error">
-            Camera access is required for biometric scanning. Please allow camera permissions and refresh the page.
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Camera access was denied or is unavailable. You can use Mock Mode.
           </Alert>
+          <Button
+            variant="contained"
+            color="secondary"
+            fullWidth
+            onClick={() => {
+              // Create a tiny valid base64 jpeg
+              const mockImage = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+              // Inject into webcamRef mechanism or bypass
+              // Since we can't inject into webcamRef easily without mounting, we'll bypass captureAndProcess logic specifically for this.
+              // We'll call a modified process function.
+
+              const processMock = async () => {
+                setIsScanning(true);
+                try {
+                  setScanProgress(50);
+                  const imageBase64 = mockImage.split(',')[1];
+
+                  if (isEmergencyMode) {
+                    const emergencyResult = await apiService.requestEmergencyAccess(
+                      imageBase64,
+                      'Mock Emergency Scan',
+                      'Emergency Room',
+                      'MOCK_DEVICE',
+                      'Test User',
+                      'Test Hospital',
+                      0.5
+                    );
+
+                    if (emergencyResult.match_found) {
+                      onScanComplete({
+                        matchFound: true,
+                        patientId: emergencyResult.patient_id,
+                        confidence: emergencyResult.match_confidence,
+                        emergencyData: emergencyResult.emergency_data
+                      });
+
+                      // Construct patient object
+                      const p: Patient = {
+                        id: emergencyResult.patient_id,
+                        name: emergencyResult.emergency_data.name,
+                        gender: 'NP',
+                        blood_group: emergencyResult.emergency_data.blood_group,
+                        emergency_contact_name: '',
+                        emergency_contact_phone: '',
+                        allergies: [],
+                        current_medications: [],
+                        medical_conditions: [],
+                        emergency_summary: '',
+                        consent_status: 'granted',
+                        is_active: true,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                      };
+                      onPatientFound(p);
+                      enqueueSnackbar('Mock Emergency Scan Successful', { variant: 'success' });
+                    } else {
+                      enqueueSnackbar('Mock Scan: No match found', { variant: 'warning' });
+                    }
+                  }
+                } catch (e) {
+                  console.error(e);
+                  enqueueSnackbar('Mock Scan Failed', { variant: 'error' });
+                } finally {
+                  setIsScanning(false);
+                  setScanProgress(0);
+                }
+              };
+              processMock();
+            }}
+          >
+            Run Mock Scan
+          </Button>
         </CardContent>
       </Card>
     );
@@ -333,7 +405,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
             <Typography variant="h6" component="h2">
               🔬 Biometric Scanner
             </Typography>
-            
+
             <Box display="flex" gap={1}>
               {isEmergencyMode && (
                 <Chip
@@ -344,7 +416,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
                   size="small"
                 />
               )}
-              
+
               <Tooltip title="Refresh Camera">
                 <IconButton
                   onClick={() => window.location.reload()}
@@ -485,7 +557,7 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({
                   Liveness Detection: {livenessResult.isLive ? 'Live Person' : 'Potential Spoof'}
                 </Typography>
                 <Typography variant="caption">
-                  Confidence: {(livenessResult.confidence * 100).toFixed(1)}% | 
+                  Confidence: {(livenessResult.confidence * 100).toFixed(1)}% |
                   Processing: {livenessResult.processingTimeMs}ms
                 </Typography>
               </Alert>

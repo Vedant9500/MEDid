@@ -212,6 +212,35 @@ PROCESSING_TIME = Histogram('processing_time_seconds', 'Processing time for biom
 
 # Database pool
 db_pool = None
+MOCK_DB = []  # In-memory store for Mock Mode
+MOCK_DB_FILE = "mock_db.json"
+
+def load_mock_db():
+    """Load Mock DB from file"""
+    global MOCK_DB
+    try:
+        if os.path.exists(MOCK_DB_FILE):
+            with open(MOCK_DB_FILE, 'r') as f:
+                content = f.read()
+                if content:
+                    MOCK_DB = json.loads(content)
+                    logger.info(f"Loaded {len(MOCK_DB)} records from {MOCK_DB_FILE}")
+    except Exception as e:
+        logger.error(f"Failed to load Mock DB: {e}")
+
+def save_mock_db():
+    """Save Mock DB to file"""
+    try:
+        with open(MOCK_DB_FILE, 'w') as f:
+            json.dump(MOCK_DB, f, indent=2)
+            logger.info(f"Saved {len(MOCK_DB)} records to {MOCK_DB_FILE}")
+    except Exception as e:
+        logger.error(f"Failed to save Mock DB: {e}")
+
+
+class EnrollmentRequest(BaseModel):
+    patient_id: str
+    encrypted_template: str
 
 # Startup time
 start_time = time.time()
@@ -391,6 +420,7 @@ async def init_db():
 @app.on_event("startup")
 async def startup_event():
     await init_db()
+    load_mock_db()
     logger.info("DeepFace Biometric Service started successfully")
 
 @app.on_event("shutdown")
@@ -623,6 +653,23 @@ async def verify_biometric_match(
         logger.error(f"Verification failed: {e}")
         raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
 
+@app.post("/internal/enroll")
+async def enroll_internal(request: EnrollmentRequest):
+    """Internal endpoint to sync templates for Mock Mode / SQLite support"""
+    # Check if already exists
+    exists = any(r['patient_id'] == request.patient_id for r in MOCK_DB)
+    if not exists:
+        MOCK_DB.append({
+            "patient_id": request.patient_id,
+            "encrypted_template": request.encrypted_template
+        })
+        save_mock_db()
+        logger.info(f"Enrolled patient {request.patient_id} in Mock DB (Total: {len(MOCK_DB)})")
+    else:
+        logger.info(f"Patient {request.patient_id} already in Mock DB")
+        
+    return {"success": True}
+
 @app.post("/biometric/match")
 async def match_biometric_template(
     request: Dict[str, Any],
@@ -638,18 +685,21 @@ async def match_biometric_template(
     if not template_data:
         raise HTTPException(status_code=400, detail="template_data is required")
     
-    if not db_pool:
-        raise HTTPException(status_code=503, detail="Database connection not available")
+    
+    if not db_pool and not MOCK_DB:
+        # If real DB is down and Mock DB is empty, we can't do anything
+        raise HTTPException(status_code=503, detail="Database connection not available (Mock DB is empty - Please Register a patient first to populate it)")
     
     try:
-        # Decrypt the incoming template if it's potentially encrypted
+        # ... (decryption logic skipped for brevity, assumed same) ...
+        # Try direct decryption if it's a Fernet token
         try:
             # Try direct decryption if it's a Fernet token
             decrypted_json = cipher_suite.decrypt(template_data.encode()).decode()
             target_template = json.loads(decrypted_json)
             target_embedding = target_template["embedding"]
         except Exception:
-            # If decryption fails, check if it's already a dict or raw JSON
+             # If decryption fails, check if it's already a dict or raw JSON
             try:
                 if isinstance(template_data, dict):
                     target_template = template_data
@@ -658,12 +708,16 @@ async def match_biometric_template(
                 target_embedding = target_template["embedding"]
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid template format: {e}")
-        
+
         # Fetch all templates (up to limit)
-        async with db_pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT patient_id, encrypted_template FROM biometric_templates LIMIT 5000"
-            )
+        if db_pool:
+            async with db_pool.acquire() as conn:
+                rows = await conn.fetch(
+                    "SELECT patient_id, encrypted_template FROM biometric_templates LIMIT 5000"
+                )
+        else:
+            # Use Mock DB
+            rows = MOCK_DB
         
         if not rows:
             return {"success": True, "matches": [], "processing_time_ms": 0}

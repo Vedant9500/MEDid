@@ -488,6 +488,19 @@ def register_patient(request):
                 template_version='1.0',
                 extraction_algorithm='face_recognition'
             )
+            
+            # Sync with Biometric Service (Mock Mode support)
+            try:
+                requests.post(
+                    f"{settings.BIOMETRIC_SERVICE_URL}/internal/enroll",
+                    json={
+                        'patient_id': str(patient.id),
+                        'encrypted_template': raw_template
+                    },
+                    timeout=2
+                )
+            except Exception as e:
+                print(f"Failed to sync mock template: {e}")
         
         # Create audit log entry
         AuditLog.objects.create(
@@ -852,6 +865,8 @@ def emergency_access(request):
             headers={'Authorization': f'Bearer {get_biometric_jwt()}'},
             timeout=10
         )
+        print(f"DEBUG: Extract response status: {extract_response.status_code}")
+        print(f"DEBUG: Extract response body: {extract_response.text}")
         
         if extract_response.status_code != 200:
             return Response({
@@ -874,10 +889,18 @@ def emergency_access(request):
         )
         
         if match_response.status_code != 200:
+            error_details = 'Unknown error'
+            try:
+                error_details = match_response.json().get('detail', match_response.text)
+            except:
+                error_details = match_response.text
+                
+            print(f"DEBUG: Match failed with {match_response.status_code}: {error_details}")
+            
             return Response({
                 'error': 'Emergency matching failed',
-                'message': 'Could not perform emergency biometric matching'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'message': f'Biometric service error: {error_details}'
+            }, status=match_response.status_code)
         
         match_data = match_response.json()
         
