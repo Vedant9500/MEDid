@@ -739,7 +739,7 @@ def biometric_scan(request):
         if match_response.status_code != 200:
             return Response({
                 'error': 'Matching failed',
-                'message': 'Could not perform biometric matching'
+                'message': f'Biometric service error: {match_response.status_code} - {match_response.text}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         match_data = match_response.json()

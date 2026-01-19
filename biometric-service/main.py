@@ -542,7 +542,7 @@ async def extract_biometric_template(
         # Encrypt template
         template_json = json.dumps(template_data, default=str)
         encrypted_template = cipher_suite.encrypt(template_json.encode())
-        template_b64 = base64.b64encode(encrypted_template).decode()
+        template_b64 = encrypted_template.decode('utf-8')
         
         # Store in database
         if patient_id and db_pool:
@@ -605,8 +605,8 @@ async def verify_biometric_match(
         
         # Decrypt templates
         try:
-            encrypted_template1 = base64.b64decode(request.template1.encode())
-            encrypted_template2 = base64.b64decode(request.template2.encode())
+            encrypted_template1 = request.template1.encode()
+            encrypted_template2 = request.template2.encode()
             
             template_data1 = json.loads(cipher_suite.decrypt(encrypted_template1).decode())
             template_data2 = json.loads(cipher_suite.decrypt(encrypted_template2).decode())
